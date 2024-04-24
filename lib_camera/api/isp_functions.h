@@ -46,6 +46,12 @@ void isp_resize_uint8(
 	const unsigned out_width,
 	const unsigned out_height);
 
+// Histogram Equalization
+void isp_histeq(
+  uint8_t* img,
+  const unsigned width,
+  const unsigned height);
+
 #if defined(__XC__) || defined(__cplusplus)
 } // extern "C"
 #endif

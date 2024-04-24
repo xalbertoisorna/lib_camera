@@ -17,6 +17,7 @@ xmake_template = Template(f'{make} -C $src_dir/build')
 
 # List of folders
 examples = [
+    "take_picture_histeq",
     "take_picture_downsample",
     "take_picture_local",
     "take_picture_raw"
