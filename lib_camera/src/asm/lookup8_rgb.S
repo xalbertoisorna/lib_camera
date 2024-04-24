@@ -28,7 +28,7 @@ void lookup8_rgb(
 #define data    r4
 #define i       r5
 
-#define BLOCK_COUNT_LOG2 (4)
+#define BLOCK_COUNT_LOG2 (3) //4
 #define BLOCK_SIZE  (9)
 #define BLOCK_RGB   {   add LUT, LUT, _512          ;   ld8u data, X[n]             };  \
                     {   sub n, n, 1                 ;   ld8u data, LUT[data]        };  \
@@ -75,14 +75,14 @@ FUNCTION_NAME:
             BLOCK_RGB
             BLOCK_RGB
             BLOCK_RGB
-            BLOCK_RGB
-            BLOCK_RGB
-            BLOCK_RGB
-            BLOCK_RGB
-            BLOCK_RGB
-            BLOCK_RGB
-            BLOCK_RGB
-            BLOCK_RGB
+            //BLOCK_RGB
+            //BLOCK_RGB
+            //BLOCK_RGB
+            //BLOCK_RGB
+            //BLOCK_RGB
+            //BLOCK_RGB
+            //BLOCK_RGB
+            //BLOCK_RGB
         {                               ;   bt n, .L_loop_top           }
     
 .Lfunc_end:
@@ -101,4 +101,3 @@ FUNCTION_NAME:
 .Ltmp0:
     .size FUNCTION_NAME, .Ltmp0-FUNCTION_NAME
     .issue_mode  single
-

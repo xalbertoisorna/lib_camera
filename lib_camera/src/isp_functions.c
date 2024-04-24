@@ -215,30 +215,37 @@ void isp_histeq(
   const unsigned width,
   const unsigned height
 ) {
-  uint8_t histeq_lut[3][256] = {{0}};
-  unsigned hist[256] = {0};
-  unsigned cdf[256] = {0};
+  const char channels = 3;
+  const float histeq_scale_max = 250.0f;
+
+  uint8_t histeq_lut[3][256] = { {0} };
+  unsigned hist[256] = { 0 };
+  unsigned cdf[256] = { 0 };
   uint32_t cdf_min = UINT32_MAX, cdf_max = 0;
 
-  for (unsigned k = 0; k < 3; k++) {
+  for (unsigned k = 0; k < channels; k++) {
+    // compute histogram
     for (unsigned i = 0; i < height; i++) {
       for (unsigned j = 0; j < width; j++) {
-        unsigned pixel = img[3 * width * i + 3 * j + k];
+        uint8_t pixel = img[3 * width * i + 3 * j + k];
         hist[pixel]++;
       }
     }
-
+    // compute cdf
     cdf[0] = hist[0];
     for (unsigned i = 1; i < 256; i++) {
       cdf[i] = cdf[i - 1] + hist[i];
       cdf_min = (cdf[i] < cdf_min) ? cdf[i] : cdf_min;
       cdf_max = (cdf[i] > cdf_max) ? cdf[i] : cdf_max;
     }
-
-    uint32_t scale = 250 / (cdf_max - cdf_min);
+    // compute LUT == scaled cdf
+    float scale = (cdf_max == cdf_min) ? 127 : histeq_scale_max / (cdf_max - cdf_min); // avoid /0
     for (unsigned i = 0; i < 256; i++) {
-      histeq_lut[k][i] = (uint8_t)(cdf[i] - cdf_min) * scale;
+      histeq_lut[k][i] = (uint8_t)((cdf[i] - cdf_min) * scale);
     }
-  }
+
+  } // every channel
+
+
   lookup8_rgb(img, img, histeq_lut, width * height);
 }

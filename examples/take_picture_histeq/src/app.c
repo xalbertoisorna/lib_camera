@@ -45,9 +45,11 @@ void user_app()
                      &image_buffer[0][0][0],
                      sizeof(image_buffer));
 
+  unsigned t2 = get_reference_time();
   isp_histeq(image_ptr,
                     APP_IMAGE_HEIGHT_PIXELS,
                     APP_IMAGE_WIDTH_PIXELS);
+  unsigned t3 = get_reference_time();
   
   // Write binary file
   write_image_file("capture.bin",
@@ -65,6 +67,7 @@ void user_app()
 
   printf("Image capture time: %f ms\n", (float)((t1 - t0) / XS1_TIMER_KHZ));
   printf("Images saved. Exiting.\n");
+  printf("Image histeq time: %f ms\n", (float)((t3 - t2) / XS1_TIMER_KHZ));
   xscope_close_all_files();
   exit(0);
 }
