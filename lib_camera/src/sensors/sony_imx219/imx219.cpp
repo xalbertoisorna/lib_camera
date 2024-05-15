@@ -109,22 +109,23 @@ void IMX219::control(chanend_t c_control) {
       ret = this->stream_start();
       break;
     case SENSOR_STREAM_STOP:
-      ret = this->stream_stop();            
+      ret = this->stream_stop();
       break;
     case SENSOR_SET_EXPOSURE:
       arg = DECODE_ARG(encoded_response);
       ret = this->set_exposure(arg);
       break;
+    case SENSOR_STREAM_STANBY:
+      arg = DECODE_ARG(encoded_response);
+      ret = this->stream_stop();
+      delay_seconds(arg);
+      printstrln("-----> Reactivating sensor stream");
+      this->stream_start();            
+      break;
     default:
       break;
     }
     xassert((ret == 0) && "Could not perform I2C write");
-
-    if (cmd == SENSOR_STREAM_STOP){
-      delay_milliseconds(5000);
-      printstrln("-----> Reactivating sensor stream");
-      this->stream_start();
-    }
   }
 }
 

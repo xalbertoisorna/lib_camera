@@ -14,6 +14,7 @@
 #define FRAMES_TO_STOP 30
 
 unsigned only_once = 1;
+unsigned cam_stop = 0;
 
 // Contains the local state info for the packet handler thread.
 static frame_state_t ph_state = {
@@ -76,10 +77,11 @@ void handle_packet(
     printstrln("EOF");
     if (ph_state.frame_number >= FRAMES_TO_STOP && only_once) {
       printstrln("-----> Stopping sensor stream, 5 seconds");
-      uint32_t encoded_cmd = ENCODE(SENSOR_STREAM_STOP, 0);
-      chan_out_word(c_control, encoded_cmd);
+      uint8_t seconds = 5;
+      chan_out_word(c_control, ENCODE(SENSOR_STREAM_STANBY, seconds));
       chan_in_word(c_control);
       //only_once = 0;
+      cam_stop = 1;
     }
     break;
 
@@ -106,13 +108,17 @@ void mipi_packet_handler(
   s_chan_out_word(c_pkt, (unsigned)&packet_buffer[pkt_idx]);
 
   while (1) {
+
+    if (cam_stop) {printstr("[0]");}
     pkt_idx = (pkt_idx + 1) & (MIPI_PKT_BUFFER_COUNT - 1);
 
     // Swap buffers with the receiver thread. Give it the next buffer
     // to fill and take the last filled buffer from it. 
+    if (cam_stop) {printstr("[1]");}
     pkt = (mipi_packet_t*)s_chan_in_word(c_pkt);
     
     // send info to MipiReciever
+    if (cam_stop) {printstr("[2]");}
     s_chan_out_word(c_pkt, (unsigned)&packet_buffer[pkt_idx]);
     // Get information regarding the packet
     // const mipi_header_t header = pkt->header;
@@ -120,6 +126,7 @@ void mipi_packet_handler(
 
     // Process the packet 
     // unsigned time_start = measure_time();
+    if (cam_stop) {printstr("[3]");}
     handle_packet(pkt, c_control);
     // unsigned time_proc = measure_time() - time_start;
   }
