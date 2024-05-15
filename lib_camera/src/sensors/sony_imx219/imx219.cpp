@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include <xcore/assert.h>
+#include <print.h>
 
 #include "imx219.hpp"
 
@@ -118,6 +119,12 @@ void IMX219::control(chanend_t c_control) {
       break;
     }
     xassert((ret == 0) && "Could not perform I2C write");
+
+    if (cmd == SENSOR_STREAM_STOP){
+      delay_milliseconds(5000);
+      printstrln("-----> Reactivating sensor stream");
+      this->stream_start();
+    }
   }
 }
 
