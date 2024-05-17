@@ -99,8 +99,7 @@ void isp_resize_uint8(
   const unsigned in_height,
   uint8_t* out_img,
   const unsigned out_width,
-  const unsigned out_height)
-{
+  const unsigned out_height) {
   const float x_ratio = (unsigned_to_float(in_width - 1) / unsigned_to_float(out_width - 1));
   const float y_ratio = (unsigned_to_float(in_height - 1) / unsigned_to_float(out_height - 1));
 
@@ -195,8 +194,59 @@ void isp_resize_int8(
         // assumes that a * W + b * X + c * Y + d * Z never overflows int8
         int8_t pixel = (int8_t)(al >> 23);
 
-        out_img[3 * out_width * i + 3 * j + plane] = pixel;
+        //out_img[3 * out_width * i + 3 * j + plane] = pixel;
+        out_img[plane] = pixel;
       }
+      out_img += 3;
+    }
+  }
+}
+
+static inline int8_t float_to_q7(const float val) {
+  // this assumes that the input [-1.0, 1.0)
+  int32_t sign, exp, mant;
+  asm("fsexp %0, %1, %2" : "=r"(sign), "=r"(exp) : "r"(val));
+  asm("fmant %0, %1" : "=r"(mant) : "r"(val));
+  if(sign){mant = -mant;}
+  mant <<= exp - 16;
+  return (int8_t)mant;
+}
+extern void resize_loop1(int8_t * wxyz, int8_t * a, int8_t * b, int8_t * c, int8_t * d, int8_t * out);
+
+void isp_resize_int8_asm1(
+  const int8_t* img,
+  const unsigned in_width,
+  const unsigned in_height,
+  int8_t* out_img,
+  const unsigned out_width,
+  const unsigned out_height) {
+  const float x_ratio = ((unsigned_to_float(in_width) - 1) / (unsigned_to_float(out_width) - 1));
+  const float y_ratio = ((unsigned_to_float(in_height) - 1) / (unsigned_to_float(out_height) - 1));
+
+  int8_t WXYZ[32] = {0};
+  unsigned x_l, y_l, x_h, y_h;
+  float xw, yw;
+
+  for (unsigned i = 0; i < out_height; i++) {
+    float incry = (y_ratio * unsigned_to_float(i));
+    xmodf(incry, &y_l, &yw, &y_h);
+
+    for (unsigned j = 0; j < out_width; j++) {
+      float incrx = (x_ratio * unsigned_to_float(j));
+      xmodf(incrx, &x_l, &xw, &x_h);
+
+      float xyw = xw * yw;
+      float yw_m_xyw = yw - xyw;
+      WXYZ[0] = float_to_q7(1 - xw - yw_m_xyw);
+      WXYZ[1] = float_to_q7(xw - xyw);
+      WXYZ[2] = float_to_q7(yw_m_xyw);
+      WXYZ[3] = float_to_q7(xyw);
+      
+      resize_loop1(WXYZ,  (int8_t *)&img[3 * in_width * y_l + 3 * x_l],
+                          (int8_t *)&img[3 * in_width * y_l + 3 * x_h],
+                          (int8_t *)&img[3 * in_width * y_h + 3 * x_l],
+                          (int8_t *)&img[3 * in_width * y_h + 3 * x_h],
+                          (int8_t *)&out_img[3 * out_width * i + 3 * j]);
     }
   }
 }

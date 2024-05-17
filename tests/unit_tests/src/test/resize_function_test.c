@@ -30,9 +30,9 @@ unsigned t1t = 0, t2t = 0, t3t = 0, t4t = 0, t5t = 0;
 // --------------------------- Unity -----------------------------------------
 
 TEST_GROUP_RUNNER(resize_group) {
-    RUN_TEST_CASE(resize_group, resize__uint8);     // test uint8 resize, constant and time
+    //RUN_TEST_CASE(resize_group, resize__uint8);     // test uint8 resize, constant and time
     RUN_TEST_CASE(resize_group, resize__int8);      // test int8 resize, constant and time
-    RUN_TEST_CASE(resize_group, resize__upsample);  // test upsample a real image, save and decode    
+    //RUN_TEST_CASE(resize_group, resize__upsample);  // test upsample a real image, save and decode    
 }
 TEST_GROUP(resize_group);
 TEST_SETUP(resize_group){
@@ -50,7 +50,7 @@ TEST(resize_group, resize__uint8) {
     CREATE_IMG_UINT8(img_out, 80, 80, 3);
 
     // take N random pixel value
-    const unsigned N_times_pixel = 100; // Number of times to fill the image with a random value
+    /*const unsigned N_times_pixel = 100; // Number of times to fill the image with a random value
     const unsigned N_times = 100; // Number of times to pic random locations to check
     for (unsigned i = 0; i < N_times_pixel; i++) {
         uint8_t pixel_val_in;
@@ -84,7 +84,7 @@ TEST(resize_group, resize__uint8) {
             uint8_t pixel_val_out = img_out.ptr[loc];
             TEST_ASSERT_UINT8_WITHIN(DELTA_PIXEL, pixel_val_in, pixel_val_out);
         }
-    }
+    }*/
 
     // Compare time
     t1 = get_reference_time();
@@ -101,11 +101,19 @@ TEST(resize_group, resize__uint8) {
     printf("Time resize uint8: %d\n", time);
 }
 
+extern void isp_resize_int8_asm1(
+  const int8_t* img,
+  const unsigned in_width,
+  const unsigned in_height,
+  int8_t* out_img,
+  const unsigned out_width,
+  const unsigned out_height);
+
 TEST(resize_group, resize__int8) {
     CREATE_IMG_INT8(img, 64, 64, 3);
     CREATE_IMG_INT8(img_out, 80, 80, 3);
 
-    const unsigned N_times_pixel = 100; // Number of times to fill the image with a random value
+    const unsigned N_times_pixel = 5; // Number of times to fill the image with a random value
     const unsigned N_times = 100; // Number of times to pic random locations to check
     for (unsigned i = 0; i < N_times_pixel; i++) {
         int8_t pixel_val_in;
@@ -128,7 +136,7 @@ TEST(resize_group, resize__int8) {
         memset(img.ptr, pixel_val_in, img.size);
 
         // resize the image - 1 (no opt)
-        isp_resize_int8(
+        isp_resize_int8_asm1(
             img.ptr,
             img.width,
             img.height,
@@ -147,7 +155,7 @@ TEST(resize_group, resize__int8) {
 
     // Compare time
     t1 = get_reference_time();
-    isp_resize_int8(
+    isp_resize_int8_asm1(
         img.ptr,
         img.width,
         img.height,

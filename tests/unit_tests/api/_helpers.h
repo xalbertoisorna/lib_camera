@@ -35,7 +35,7 @@ struct name {                                \
 
 #define CREATE_IMG_INT8(name, h, w, c)       \
 struct name {                                \
-    int8_t data[h][w][c];                    \
+    int8_t __attribute__((aligned (8))) data[h][w][c];                    \
     int8_t* ptr;                             \
     const uint16_t width;                    \
     const uint16_t height;                   \
