@@ -1,34 +1,26 @@
 Example: take picture downsample
 ================================
-
-This example sets the basic settings for the Sony sensor and grabs a single frame. 
-By default, the output format is the following:
-- 160x120x3 RGB
-
-
-Build example
--------------
-Run the following command from the example folder: 
-
-.. code-block:: console
-
-  cmake -G "Unix Makefiles" -B build
-  xmake -C build
-
-
-Running example
----------------
+(tools 15.3 test, Windows)
 
 .. warning::
 
-  Make sure ``xscope_fileio`` is installed (follow `doc/quick_start_guide <../../doc/quick_start_guide/quick_start_guide.rst>`_. for installation)
-
-Run the following command from the current directory:
+  This repository is structured as a sandbox. So create a folder first where all repos will be installed.
+  Make sure ``xscope_fileio`` is installed (follow `doc/quick_start_guide <../../doc/quick_start_guide/quick_start_guide.rst>`_. for installation). 
+  Also you can visit https://github.com/xmos/xscope_fileio/blob/develop/host/README.rst 
 
 .. code-block:: console
 
-  python ../../python/run_xscope_bin.py bin/take_picture_downsample.xe
+  # Setup
+  call "C:/Program Files/XMOS/XTC/15.3.1001/SetEnv.bat"
+  git clone https://github.com/xmos/lib_camera.git
+  cd lib_camera/examples/take_picture_downsample
+  
+  # Build
+  cmake -G "Unix Makefiles" -B build
+  xmake -C build
 
+  # Run
+  python ../../python/run_xscope_bin.py bin/take_picture_downsample.xe
 
 Output
 ------
