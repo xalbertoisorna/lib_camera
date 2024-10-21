@@ -14,16 +14,15 @@
 #include "camera_conv.h"
 #include "camera_io.h"
 
-#define H   200
-#define W   200
-#define CH    1 // RAW
 #define DELAY_MILISECONDS 100
+#define FILE1_NAME "capture1.rgb"
+#define FILE2_NAME "capture2.rgb"
 
 #define OUTPUT_INT8 1
 
 static
 void sim_model_invoke() {
-    printf("Simulating model\n");
+    puts("Simulating model\n");
     delay_milliseconds_cpp(DELAY_MILISECONDS);
 }
 
@@ -33,28 +32,30 @@ void save_image(image_cfg_t* image, char* filename) {
     #if (OUTPUT_INT8 == 0)
         camera_int8_to_uint8(img_ptr, image->ptr, image->size);
     #endif
-    camera_io_write_image_file(filename, img_ptr, H, W, CH); // this will close the file as well
+    camera_io_write_image_file(filename, img_ptr, image->height, image->width, image->channels); // this will close the file as well
 }
 
 
 void user_app(chanend_t c_cam) {
 
-    // Create a Configuration
-    camera_cfg_t config = {
-        .offset_x = 0.2,
-        .offset_y = 0.1,
-        .mode = MODE_RAW,
-    };
+    // Image and configuration
+    const unsigned h = 200;
+    const unsigned w = 200;
+    const unsigned ch = 3;
+    const unsigned img_size = h * w * ch;
+    int8_t image_buffer[img_size] = { 0 };
 
-    // Create an Image Structure
-    int8_t image_buffer[H][W][CH] = {{{0}}};
-    int8_t* image_ptr = &image_buffer[0][0][0];
+    camera_cfg_t config = {
+        .offset_x = 0,
+        .offset_y = 0,
+        .mode = MODE_RGB1,
+    };
     image_cfg_t image = {
-        .height = H,
-        .width = W,
-        .channels = CH,
-        .size = H * W * CH,
-        .ptr = image_ptr,
+        .height = h,
+        .width = w,
+        .channels = ch,
+        .size = h*w*ch,
+        .ptr = &image_buffer[0],
         .config = &config
     };
 
@@ -68,7 +69,7 @@ void user_app(chanend_t c_cam) {
     camera_isp_start_capture(c_cam, &image);
     sim_model_invoke(); // this is just some big delay to show that it is non-blocking
     camera_isp_get_capture(c_cam);
-    save_image(&image, "capture1.raw");
+    save_image(&image, FILE1_NAME);
 
     // change coordinates
     config.offset_x = 0.5;
@@ -77,12 +78,12 @@ void user_app(chanend_t c_cam) {
     camera_isp_start_capture(c_cam, &image);
     sim_model_invoke(); // this is just some big delay to show that it is non-blocking
     camera_isp_get_capture(c_cam);
-    save_image(&image, "capture2.raw");
+    save_image(&image, FILE2_NAME);
 
-    // (Optional) try somthing makes no sense
+    // (Optional) try something makes no sense
     /*
-    config.offset_x = 0.5; // 640*0.5 + 400 (width) = 720 > 640 !!
-    config.offset_y = 0.5; // 480*0.5 + 300 (height) = 540 > 480 !!
+    config.offset_x = 1.8; 
+    config.offset_y = 1.8; 
     camera_isp_coordinates_compute(&image);
     camera_isp_coordinates_print(&image);
     */
