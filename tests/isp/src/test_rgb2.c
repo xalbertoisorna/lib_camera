@@ -22,24 +22,20 @@
 #define INPUT_FILE  "imgs/in_rgb2.bin" 
 #define OUTPUT_FILE "imgs/out_rgb2.rgb" 
 
-// Input image configuration
-#define in_h 192
-#define in_w 192
-#define in_ch 1
-#define in_size in_h * in_w * in_ch
+#define DS_FACTOR 2
+#define MAX_BUFF_SIZE (640*480*1)
 
-// Output image configuration
-#define out_h  (in_h >> 1)
-#define out_w  (in_w >> 1)
-#define out_ch 3
-#define out_size out_h * out_w * out_ch
+void test_isp_rgb2(unsigned in_height, unsigned in_width) {
+    unsigned out_h = in_height >> (DS_FACTOR - 1); 
+    unsigned out_w = in_width >> (DS_FACTOR - 1); 
+    unsigned out_ch = 3;
+    unsigned out_size = out_h * out_w * out_ch;
 
-void test_isp_rgb2() {    
     // Time variables
     unsigned ta = 0, tb = 0;  
     
     // Create a Configuration
-    int8_t image_buffer[out_size] ALIGNED_8 = { 0 };
+    int8_t image_buffer[MAX_BUFF_SIZE] ALIGNED_8 = { 0 };
 
     camera_cfg_t config = {
         .offset_x = 0,
@@ -60,9 +56,11 @@ void test_isp_rgb2() {
     // send it row by row
     FILE *fp = fopen(INPUT_FILE, "rb");
     assert(fp != NULL);
-    int8_t img_row[in_w] = {0}; // aux buffer for reading the image
-    for (int i = 0; i < in_h; i++) {
-        fread((uint8_t*)&img_row[0], 1, in_w, fp);        
+    // allocate with malloc
+    int8_t* img_row = (int8_t*)malloc(in_width);
+    memset(img_row, 0, in_width);
+    for (int i = 0; i < in_height; i++) {
+        fread((uint8_t*)&img_row[0], 1, in_width, fp);
         ta = get_reference_time();
         camera_isp_raw8_to_rgb2(&image, img_row, i);
         tb += get_reference_time() - ta;
@@ -72,14 +70,23 @@ void test_isp_rgb2() {
     printf("Total time (ms): %f\n", TO_MS(tb));
     printf("Ops per pixel: %.2f\n", ops_per_pixel);
     fclose(fp);
-
+    free(img_row);
     // Write the image to file
     printf("Writing image to file\n");
     camera_io_write_file(OUTPUT_FILE, (uint8_t*)image.ptr, image.size);
 }
 
-int main(){
+// pass arguments to the test
+// xrun --xscope --args file.xe width height
+int main(int argc, char* argv[]){    
     printf("[test_isp_rgb2]\n");
-    test_isp_rgb2();
+    if (argc != 3) {
+        printf("Usage: %s <width> <height>\n", argv[0]);
+        return 1;
+    }
+    unsigned width = atoi(argv[1]);
+    unsigned height = atoi(argv[2]);
+    printf("Image size: %dx%d\n", width, height);
+    test_isp_rgb2(height, width);
     return 0;
 }

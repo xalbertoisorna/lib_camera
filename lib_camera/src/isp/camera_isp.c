@@ -44,8 +44,6 @@ const unsigned sensor_width_max_values[] = {
   MODE_RGB4_MAX_SIZE
 };
 
-// -------- Image transformations --------
-
 
 // -------- State handlers --------
 

@@ -26,10 +26,9 @@ tmp_out = imgs / "out_rgb1.rgb"
 binary = bin_path / "test_isp_rgb1.xe"
 
 # Input image configuration
-in_size_raw = ImgSize(height=192, width=192, channels=1, dtype=np.int8)
-
-# Output image configuration
-out_size_rgb = ImgSize(height=192, width=192, channels=3, dtype=np.int8)
+DS_FACTOR = 1
+IN_SZ = 192
+in_size_raw = ImgSize(height=IN_SZ, width=IN_SZ, channels=1, dtype=np.int8)
 
 
 @pytest.mark.parametrize("file_in", test_files)
@@ -37,6 +36,12 @@ def test_rgb1(file_in):
     print("\n===================================")
     print("Testing file:", file_in)
     dec = ImageDecoder(in_size_raw)
+    out_size_rgb = ImgSize(
+        height=in_size_raw.height // DS_FACTOR,
+        width=in_size_raw.width // DS_FACTOR,
+        channels=3,
+        dtype=np.int8,
+    )
 
     # out folder
     out_folder = imgs / file_in.stem

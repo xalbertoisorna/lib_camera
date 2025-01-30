@@ -18,6 +18,7 @@ set(
     -Wall
     -fxscope
     -DDEBUG_PRINT_ENABLE_CAM_ISP=1
+    -fcmdline-buffer-bytes=1024
 )
 
 # ----- RGB1 -----

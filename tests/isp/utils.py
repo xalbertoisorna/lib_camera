@@ -308,7 +308,9 @@ def xsim_xcore(
     dec.raw8_resize(infile, tmp_in, in_size)
 
     # run firmware with xsim
-    run_cmd = f'xsim --xscope "-offline trace.xmt" {binary}'
+    in_h = in_size.height
+    in_w = in_size.width
+    run_cmd = f'xsim --xscope "-offline trace.xmt" --args {binary} {in_h} {in_w}'
     subprocess.run(run_cmd, shell=True, cwd=cwd, check=True)
 
     # decode the output temp image to desired output
