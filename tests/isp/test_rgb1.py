@@ -13,32 +13,37 @@ from utils import ImageDecoder, ImageMetrics, ImgSize, xsim_xcore
 met = ImageMetrics()
 cwd = Path(__file__).parent.absolute()
 
-# Define test files
+# Define test files and input sizes
 imgs = cwd / "imgs"
 bin_path = cwd / "bin"
 assert imgs.exists(), f"Folder {imgs} does not exist"
+
 test_files = imgs.glob("*.raw")
+img_sizes = [128, 152, 168, 192, 200]
 test_results = []
 
 # cmake, make, run commands
 tmp_in = imgs / "in_rgb1.bin"
 tmp_out = imgs / "out_rgb1.rgb"
 binary = bin_path / "test_isp_rgb1.xe"
+ds_factor = 1
 
-# Input image configuration
-DS_FACTOR = 1
-IN_SZ = 192
-in_size_raw = ImgSize(height=IN_SZ, width=IN_SZ, channels=1, dtype=np.int8)
 
+def get_file_names(file_in, out_folder, rgbx, method):
+    out_name = file_in.stem + f"_{rgbx}_{method}.png"
+    out_file = out_folder / out_name
+    return out_name, out_file
 
 @pytest.mark.parametrize("file_in", test_files)
-def test_rgb1(file_in):
+@pytest.mark.parametrize("in_sz", img_sizes)
+def test_rgb1(file_in, in_sz):
     print("\n===================================")
     print("Testing file:", file_in)
+    in_size_raw = ImgSize(height=in_sz, width=in_sz, channels=1, dtype=np.int8)
     dec = ImageDecoder(in_size_raw)
     out_size_rgb = ImgSize(
-        height=in_size_raw.height // DS_FACTOR,
-        width=in_size_raw.width // DS_FACTOR,
+        height=in_size_raw.height // ds_factor,
+        width=in_size_raw.width // ds_factor,
         channels=3,
         dtype=np.int8,
     )
@@ -48,18 +53,15 @@ def test_rgb1(file_in):
     out_folder.mkdir(exist_ok=True)
 
     # ------- run opencv
-    ref_name = file_in.stem + "_rgb1_opencv.png"
-    ref_out = out_folder / ref_name
+    ref_name, ref_out = get_file_names(file_in, out_folder, "rgb1", "opencv")
     ref_img = dec.raw8_to_rgb1(file_in, ref_out)
 
     # ------- run xcore (Python)
-    py_name = file_in.stem + "_rgb1_python.png"
-    py_out = out_folder / py_name
+    py_name, py_out = get_file_names(file_in, out_folder, "rgb1", "python")
     py_img = dec.raw8_to_rgb1_xcore(file_in, py_out)
 
     # ------- run xcore (xcore)
-    xc_name = file_in.stem + "_rgb1_xcore.png"
-    xc_out = out_folder / xc_name
+    xc_name, xc_out = get_file_names(file_in, out_folder, "rgb1", "xcore")
     xc_img = xsim_xcore(
         file_in, xc_out, tmp_in, tmp_out, binary, in_size_raw, out_size_rgb
     )

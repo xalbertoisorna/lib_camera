@@ -40,6 +40,7 @@ class ImgSize(BaseModel):
 # and will replace all small and independent python functions in "/python" folder
 class ImageDecoder(object):
     def __init__(self, input_size: ImgSize):
+        self.input_size = input_size
         self.height = input_size.height
         self.width = input_size.width
         self.channels = input_size.channels
@@ -48,7 +49,13 @@ class ImageDecoder(object):
         self.in_mode = "raw8" if self.channels == 1 else "rgb"
         self.sns_height = SENSOR_HEIGHT
         self.sns_width = SENSOR_WIDTH
-
+        self.methods = {
+            ("rgb1", "opencv"): self.raw8_to_rgb1,
+            ("rgb1", "python"): self.raw8_to_rgb1_xcore,
+            ("rgb2", "opencv"): self.raw8_to_rgb2,
+            ("rgb2", "python"): self.raw8_to_rgb2_xcore,
+        }
+        
     def _imgread(self, input_name):
         with open(input_name, "rb") as f:
             data = f.read()
@@ -94,7 +101,7 @@ class ImageDecoder(object):
         return buffer
 
     def raw8_to_rgbx(self, input_name=None, output_name=None, k_factor=2):
-        dem_filter = Image.Resampling.LANCZOS
+        dem_filter = Image.Resampling.BILINEAR
         img = self._imgread(input_name)
         img = cv2.cvtColor(img, cv2.COLOR_BayerBG2RGB)
         img_pil = Image.fromarray(img)
@@ -141,6 +148,7 @@ class ImageDecoder(object):
         img = self._imgread(input_name)
         out_size = (self.height, self.width, 3)
         img_out = np.zeros(out_size, dtype=np.float32)
+        assert(self.width % 8 == 0), "Width must be multiple of 8"
         for j in range(0, self.height - 2, 2):
             for i in range(0, self.width, 8):
                 block_4x8 = img[j : j + 4, i : i + 8].flatten()
