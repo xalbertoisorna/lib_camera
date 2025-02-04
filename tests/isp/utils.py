@@ -14,7 +14,11 @@ from skimage.metrics import structural_similarity
 from typing import Optional, Literal
 from pydantic import BaseModel
 
-from kernels import kernel_array_rgb2, kernel_array_rgb1, kernel_array_rgb4
+from kernels import (
+    kernel_array_rgb2, 
+    kernel_array_rgb1, 
+    kernel_array_rgb4,
+    kernel_array_rgb4_gaussian)
 
 cwd = Path(__file__).parent.absolute()
 path_imgs = cwd / "imgs"
@@ -125,9 +129,9 @@ class ImageDecoder(object):
     def raw8_to_rgb4(self, input_name=None, output_name=None):
         return self.raw8_to_rgbx(input_name, output_name, 4)
 
-    def check_kernels(self, kernel_arr):
+    def check_kernels(self, kernel_arr, kshape=(32,)):
         for kernel in kernel_arr:
-            assert kernel.shape == (32,), "Kernel shape is not 32"
+            assert kernel.shape == kshape, f"Kernel shape is not {kshape}"
             assert kernel.sum() == 1.0, "Kernel does not sum 1.0"
         print("All kernels are valid")
 
@@ -229,6 +233,47 @@ class ImageDecoder(object):
                 block_4x8 = img[j : j + 4, i : i + 8, 0].astype(np.float32).flatten()
                 for x in range(0, 6):
                     img_out[rgb_pos1 + x] = np.dot(block_4x8, kernels[x].flatten())
+
+        img_out = img_out.reshape(out_size)
+        img_out_pil = self._imgsave(img_out, input_name, output_name)
+        return img_out_pil
+    
+    def raw8_to_rgb4_xcore_gauss(self, input_name: Path = None, output_name: Path = None):        
+        """ This functions perform an image pyramid of 1/2 resolution from a raw8 image. 
+        A 3x3 Gaussian kernel of sigma=0.85 is applied to each channel, resulting in a downsample by 4 image. 
+
+        img input_size : (H, W, 1)
+        img output_size: (H//4, W//4, 3)
+        block input_size : (6, 6, 1)
+        block output_size: (1, 1, 3)
+        input size must be multiple of 6
+        
+        Args:
+            input_name (Path, optional): input file name. Defaults to None.
+            output_name (Path, optional): output file name. Defaults to None.
+
+        Returns:
+            Pillow Image: returns demosaiced image.
+        """
+        
+        kernels = kernel_array_rgb4_gaussian
+        self.check_kernels(kernels, (6, 6))
+        img = self._imgread(input_name)
+        assert self.height % 6 == 0, "Height must be multiple of 6"
+        assert self.width % 6 == 0, "Width must be multiple of 6"
+        out_size = (self.height // 4, self.width // 4, 3)
+        row_len = (self.width // 4) * 3  # row length in rgb
+        img_out = np.zeros(out_size, dtype=np.float32).flatten()
+        for j in range(0, self.height - 6 + 1, 2):
+            rgb_ypos = (j // 4) * row_len  # this is ptr_out height location
+            for i in range(0, self.width - 6 + 1, 2):
+                rgb_xpos = (i // 4) * 3  # this is ptr_out width location
+                rgb_pos = rgb_ypos + rgb_xpos
+                block = img[j: j + 6, i: i + 6]
+                for x in range(0, 3):
+                    px = np.dot(block.flatten(), kernels[x].flatten())
+                    px = np.clip(px, 0, 255).astype(np.uint8)
+                    img_out[rgb_pos + x] = px
 
         img_out = img_out.reshape(out_size)
         img_out_pil = self._imgsave(img_out, input_name, output_name)

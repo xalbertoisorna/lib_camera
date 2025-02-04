@@ -540,6 +540,56 @@ kernel_rgb4_blue1 = [
     0.0, 0.0, 0.0, 0.0, 0.0, qtr, 0.0, qtr,
 ]
 
+# -------------------- RGB4 Gaussian --------------------
+# in : 6x6x1
+# out: 1x1x3
+
+kernel_rgb4_gauss_red0 = (
+    np.array(
+        [
+            [1, 0, 2, 0, 1, 0],
+            [0, 0, 0, 0, 0, 0],
+            [2, 0, 4, 0, 2, 0],
+            [0, 0, 0, 0, 0, 0],
+            [1, 0, 2, 0, 1, 0],
+            [0, 0, 0, 0, 0, 0],
+        ],
+        dtype=np.float32,
+    )
+    / 16.0
+)
+
+kernel_rgb4_gauss_green0 = (
+    np.array(
+        [
+            [0, 1, 0, 2, 0, 1],
+            [0, 0, 0, 0, 0, 0],
+            [0, 2, 0, 4, 0, 2],
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 2, 0, 1],
+            [0, 0, 0, 0, 0, 0],
+        ],
+        dtype=np.float32,
+    )
+    / 16.0
+)
+
+
+kernel_rgb4_gauss_blue0 = (
+    np.array(
+        [
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 2, 0, 1],
+            [0, 0, 0, 0, 0, 0],
+            [0, 2, 0, 4, 0, 2],
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 2, 0, 1],
+        ],
+        dtype=np.float32,
+    )
+    / 16.0
+)
+
 # ----------------------------------------------
 
 kernel_array_rgb1 = np.array([
@@ -580,3 +630,9 @@ kernel_array_rgb4 = np.array([
     kernel_rgb4_green1,
     kernel_rgb4_blue1,
 ])
+
+kernel_array_rgb4_gaussian = np.array([
+    kernel_rgb4_gauss_red0,
+    kernel_rgb4_gauss_green0,
+    kernel_rgb4_gauss_blue0
+], dtype=np.float32)

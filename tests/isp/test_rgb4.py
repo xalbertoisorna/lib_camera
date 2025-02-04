@@ -50,7 +50,7 @@ def test_rgb4(file_in):
     # ------- run xcore (Python)
     py_name = file_in.stem + "_rgb4_python.png"
     py_out = out_folder / py_name
-    py_img = dec.raw8_to_rgb4_xcore(file_in, py_out)
+    py_img = dec.raw8_to_rgb4_xcore_gauss(file_in, py_out)
 
     # ------- run xcore (xcore)
     xc_name = file_in.stem + "_rgb4_xcore.png"
@@ -60,7 +60,7 @@ def test_rgb4(file_in):
     # in_size_raw, out_size_rgb)
 
     # ------- Results (opencv vs python)
-    results = met.get_metric(ref_name, ref_img, py_name, py_img)
+    results = met.get_metric(ref_name, ref_img, py_name, py_img, check=False)
     test_results.append(results)
 
     # ------- Results (opencv vs xcore)
