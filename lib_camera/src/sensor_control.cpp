@@ -17,7 +17,7 @@ void sensor_control(chanend_t c_control) {
   i2c_conf.p_sda = XS1_PORT_4E;
   i2c_conf.i2c_ctx_ptr = &i2c_ctx;
 
-  const bool binning = true;
+  const bool binning = false;
   const bool centralise = true;
 
   IMX219 snsr(
