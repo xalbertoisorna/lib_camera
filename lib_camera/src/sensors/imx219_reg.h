@@ -7,7 +7,7 @@
 
 // Sleep values and registers
 #define SLEEP             0xFFFF
-#define TRSTUS            200
+#define TRSTUS            300
 
 // CSI LANE
 #define CSI_LANE_MODE_REG 0x0114
@@ -35,7 +35,7 @@
 
 // Gain params
 #define GAIN_MIN_DB          0
-#define GAIN_DEFAULT_DB     40
+#define GAIN_DEFAULT_DB     50
 #define GAIN_MAX_DB         84
 
 // Test pattern registers

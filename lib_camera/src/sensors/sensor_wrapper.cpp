@@ -46,12 +46,19 @@ void camera_sensor_init() {
   // Init the I2C sensor first configuration
   printstr("Camera init\n");
   int ret = 0;
+  ret |= camera_sensor_ptr->stream_stop();
+  ret |= camera_sensor_ptr->stream_stop();
+  delay_milliseconds_cpp(100);
+  printintln(ret);
   ret |= camera_sensor_ptr->initialize();
+  printintln(ret);
   delay_milliseconds_cpp(100);
   ret |= camera_sensor_ptr->configure();
-  delay_milliseconds_cpp(500);
+  printintln(ret);
+  delay_milliseconds_cpp(100);
   ret |= camera_sensor_ptr->stream_start();
-  delay_milliseconds_cpp(500);
+  printintln(ret);
+  delay_milliseconds_cpp(100);
   xassert((ret == 0) && "Could not initialise camera");
   printstr("Camera_started and configured\n");
 }

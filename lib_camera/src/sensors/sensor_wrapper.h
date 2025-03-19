@@ -12,7 +12,7 @@
 
 // I2C defines
 #define I2C_DEV_ADDR             0x10
-#define I2C_DEV_SPEED             400
+#define I2C_DEV_SPEED             300
 #define PRINT_I2C_REG               0
 
 // Sensor defines

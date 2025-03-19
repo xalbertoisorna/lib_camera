@@ -5,6 +5,9 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
+#include <assert.h>
+
+#include <print.h>
 
 #include "camera_io.h"
 #include "camera_utils.h"
@@ -20,20 +23,22 @@ void camera_io_write_file(char * filename, uint8_t * data, const size_t size)
 
 void camera_io_write_image_file(char * filename, uint8_t * image, const size_t height, const size_t width, const size_t channels)
 {
-  printf("Writing image...\n");
+  // printstr("Writing image...\n");
 
   unsigned line_len = width * channels;
   FILE * fp = fopen(filename, "wb");
+  assert(fp != NULL);
 
   for (unsigned line = 0; line < height; line++) {
-    fwrite(image, sizeof(uint8_t), line_len, fp);
+    fwrite(image, 1, line_len, fp);
     image += line_len;
     delay_milliseconds_cpp(1);
   }
   fclose(fp);
 
-  printf("Image written into file: %s\n", filename);
-  printf("Image dimentions: %d x %d\n\n", width, height);
+  //printstr("Image written into file:");
+  //printstrln(filename);
+  //printstr("Image dimentions: %d x %d\n\n", width, height);
 }
 
 void camera_io_write_bmp_file(char * filename, uint8_t * image, const size_t height, const size_t width, const size_t channels)
