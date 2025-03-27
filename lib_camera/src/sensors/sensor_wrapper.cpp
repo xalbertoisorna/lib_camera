@@ -2,7 +2,10 @@
 // This Software is subject to the terms of the XMOS Public Licence: Version 1.
 
 #include <stdint.h>
+
+#include <platform.h>
 #include <xcore/assert.h>
+
 #include "print.h"
 
 #include "camera.h"
@@ -25,8 +28,8 @@ void camera_sensor_init() {
   // I2C settings
   i2c_conf.device_addr = I2C_DEV_ADDR;
   i2c_conf.speed = I2C_DEV_SPEED;
-  i2c_conf.p_scl = XS1_PORT_4E;
-  i2c_conf.p_sda = XS1_PORT_4E;
+  i2c_conf.p_scl = PORT_I2C_SCL;
+  i2c_conf.p_sda = PORT_I2C_SDA;
   i2c_conf.i2c_ctx_ptr = &i2c_ctx;
 
   // Sensor settings

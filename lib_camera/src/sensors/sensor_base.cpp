@@ -6,6 +6,21 @@
 #include "sensor_base.hpp"
 #include "camera_utils.h"
 
+// ------------ vision board
+/*
+#define  SCL_BIT_POS  0x1
+#define  SCL_BIT_MASK 0xC
+#define  SDA_BIT_POS  0x0
+#define  SDA_BIT_MASK 0xC
+*/
+
+// ------------ explorer board
+#define  SCL_BIT_POS  0x0
+#define  SCL_BIT_MASK 0x0
+#define  SDA_BIT_POS  0x0
+#define  SDA_BIT_MASK 0x0
+
+
 using namespace sensor;
 
 SensorBase::SensorBase(i2c_config_t _conf) : i2c_cfg(_conf) {
@@ -15,8 +30,8 @@ SensorBase::SensorBase(i2c_config_t _conf) : i2c_cfg(_conf) {
 void SensorBase::i2c_init() {
   i2c_master_init(
     this->i2c_cfg.i2c_ctx_ptr,
-    this->i2c_cfg.p_scl, 1, 0xC,
-    this->i2c_cfg.p_sda, 0, 0xC,
+    this->i2c_cfg.p_scl, SCL_BIT_POS, SCL_BIT_MASK,
+    this->i2c_cfg.p_sda, SDA_BIT_POS, SDA_BIT_MASK,
     this->i2c_cfg.speed);
   delay_milliseconds_cpp(100);
   printstrln("I2C initialized.");

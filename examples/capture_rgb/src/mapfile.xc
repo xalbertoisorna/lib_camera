@@ -20,8 +20,8 @@ int main(void)
   
   // Parallel jobs
   par{
-    on tile[1]: camera_main(c_cam);
-    on tile[1]: user_app(c_cam);
+    on tile[0]: camera_main(c_cam);
+    on tile[0]: user_app(c_cam);
   }
   return 0;
 }
