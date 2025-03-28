@@ -14,6 +14,10 @@
 #define I2C_DEV_ADDR             0x10
 #define I2C_DEV_SPEED             400
 #define PRINT_I2C_REG               0
+// Conmmand defines
+#define ENCODE_CTRL(cmd, arg) (((uint32_t)(cmd) << 16) | (uint32_t)(arg & 0xFFFF))
+#define DECODE_CMD(value) ((uint16_t)((value) >> 16))
+#define DECODE_ARG(value) ((uint16_t)(value))
 
 // Sensor defines
 typedef struct {
@@ -36,11 +40,27 @@ typedef enum {
   FLIP_VERTICAL = (0 | (1 << 1))
 } orientation_t;
 
+typedef enum {
+  SENSOR_INIT = 0,
+  SENSOR_STREAM_START,
+  SENSOR_STREAM_STOP,
+  SENSOR_SET_EXPOSURE
+} sensor_control_t;
+
 C_API_START
 
 void camera_sensor_init();
 void camera_sensor_start();
 void camera_sensor_stop();
 void camera_sensor_set_tp(uint16_t pattern);
+
+// Sensor control functions
+void camera_control(chanend_t c_control);
+void camera_sensor_control_tx(
+  chanend_t c_control, 
+  sensor_control_t cmd, 
+  uint8_t arg
+);
+
 
 C_API_END

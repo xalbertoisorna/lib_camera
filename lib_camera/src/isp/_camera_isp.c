@@ -80,7 +80,6 @@ void handle_end_of_frame(
   image_cfg_t* image,
   chanend_t c_cam)
 {
-  camera_sensor_stop();
   if (image->ptr != NULL) {
     ph_state.capture_finished = 1;
     chan_out_byte(c_cam, 1);
@@ -206,7 +205,9 @@ static
 void camera_isp_packet_handler(
   const mipi_packet_t* pkt,
   image_cfg_t* image_cfg,
-  chanend_t c_isp_to_user) {
+  chanend_t c_isp_to_user,
+  chanend_t c_i2c) 
+{
 
   // Definitions
   const mipi_header_t header = pkt->header;
@@ -244,6 +245,7 @@ void camera_isp_packet_handler(
       t_end = get_reference_time();
       debug_printf("Frame time: %d cycles\n", t_end - t_init);
       handle_post_process(image_cfg);
+      camera_sensor_control_tx(c_i2c, SENSOR_STREAM_STOP, 0);
       handle_end_of_frame(image_cfg, c_isp_to_user);
       break;
 
@@ -260,8 +262,9 @@ void camera_isp_packet_handler(
 void camera_isp_thread(
   streaming_chanend_t c_pkt,
   chanend_t c_ctrl,
-  chanend_t c_cam) {
-
+  chanend_t c_cam,
+  chanend_t c_i2c) 
+{
   mipi_packet_t ALIGNED_8 packet_buffer[MIPI_PKT_BUFFER_COUNT];
   mipi_packet_t* pkt;
   unsigned pkt_idx = 0;
@@ -271,7 +274,7 @@ void camera_isp_thread(
   image.ptr = NULL;
 
   // Sensor configuration
-  camera_sensor_init();
+  camera_sensor_control_tx(c_i2c, SENSOR_INIT, 0);
 
   // Wait for the sensor to start
   delay_milliseconds_cpp(600);
@@ -287,14 +290,14 @@ void camera_isp_thread(
     pkt = (mipi_packet_t*)s_chan_in_word(c_pkt);
     pkt_idx = (pkt_idx + 1) & (MIPI_PKT_BUFFER_COUNT - 1);
     s_chan_out_word(c_pkt, (unsigned)&packet_buffer[pkt_idx]);
-    camera_isp_packet_handler(pkt, &image, c_cam);
+    camera_isp_packet_handler(pkt, &image, c_cam, c_i2c);
     continue;
     }
   on_c_user_isp_change: { // attending user_app
     // user petition
     chan_in_buf_byte(c_cam, (uint8_t*)&image, sizeof(image_cfg_t)); // recieve info from user
     // Start camera
-    camera_sensor_start();
+    camera_sensor_control_tx(c_i2c, SENSOR_STREAM_START, 0);
     continue;
     }
   }

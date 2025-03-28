@@ -30,6 +30,6 @@ C_API_START
  * @brief Lib camera main function
  * @param c_user  Channel to communicate with the user
  */
-void camera_main(chanend_t c_camera);
+void camera_main(chanend_t c_camera, chanend_t c_i2c);
 
 C_API_END

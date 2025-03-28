@@ -110,7 +110,8 @@ void camera_isp_get_capture(chanend_t c_cam);
 void camera_isp_thread(
   streaming_chanend_t c_pkt,
   chanend_t c_ctrl,
-  chanend_t c_cam);
+  chanend_t c_cam,
+  chanend_t c_i2c);
 
 
 // -------- RAW to RGB -------------------
