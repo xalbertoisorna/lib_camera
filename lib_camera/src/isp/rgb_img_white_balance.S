@@ -7,7 +7,7 @@ void wb_scale_image(
     const int16_t vsat[16]
 );
 
-Descr:
+Description:
 
     This function scales the image by applying a white balance correction.
     The image is processed in blocks of 12 pixels at a time, and the scaling
@@ -69,7 +69,7 @@ FUNCTION_NAME:
     sub img_size, img_size, _32
     divu cnt, img_size, _12
     vldc    vc[0]
-.do_wb_loop:
+.do_wb_loop_top:
     vlmacc  img[0]
     vlmacc  vk[0]
     vlsat   vsat[0]   
@@ -77,7 +77,7 @@ FUNCTION_NAME:
     vclrdr
     add img, img, _12
     sub cnt, cnt, 1
-    bt cnt, .do_wb_loop
+    bt cnt, .do_wb_loop_top
 // Restore regs
     ldd   r4, r5, sp[0]
     ldd   r6, r7, sp[1]

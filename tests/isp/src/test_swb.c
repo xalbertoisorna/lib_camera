@@ -72,16 +72,19 @@ int main()
     };
     camera_isp_coordinates_compute(&image);
     fill_img_rand_int8(&image);
-
+    int8_t img_plain[img_size] = { 0 };
+    memcpy(img_plain, image_buffer, img_size);
+    
     // Print the first 10 values
     printf("\nFirst 10 values of the image before SWB:\n");
     for (unsigned i = 0; i < 10; i++) {
         printf("%d ", image_buffer[i]);
     }
     
-    // do awb
-    unsigned ta = 0, tb = 0;
-    ta = get_reference_time();
+    // do awb - plain
+
+
+    // do awb - VPU 
     camera_isp_white_balance(&image);
     tb = get_reference_time();
     printf("\nTime taken for SWB: %d cycles\n", tb - ta);
