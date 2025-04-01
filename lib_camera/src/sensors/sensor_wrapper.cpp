@@ -91,7 +91,6 @@ void camera_control(chanend_t c_control){
         encoded_response = chan_in_word(c_control);
         cmd = (sensor_control_t)DECODE_CMD(encoded_response);
         arg = DECODE_ARG(encoded_response);
-        printf("Received command: %d, arg: %d\n", cmd, arg);
         switch (cmd)
         {
         case SENSOR_INIT:
