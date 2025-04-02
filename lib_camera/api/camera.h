@@ -17,8 +17,8 @@
 #define CH_ISP_USER     1 // Channel between ISP and user
 
 // High-Level Sensor Configuration
-#define SENSOR_WIDHT                800
-#define SENSOR_HEIGHT               800
+#define SENSOR_WIDHT                1048
+#define SENSOR_HEIGHT               1048
 
 #define CONFIG_FLIP                 FLIP_NONE
 #define CONFIG_BINNING              BINNING_ON
