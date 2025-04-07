@@ -225,6 +225,64 @@ class ImageDecoder(object):
         img_out = img_out.reshape(out_size)
         img_out_pil = self._imgsave(img_out, input_name, output_name)
         return img_out_pil
+    
+    def raw8_to_yuv422_xcore(self, input_name: Path = None, output_name: Path = None):
+        """ Converts a raw8 image to YUV422 format.
+            each 2 RAW8 pixels becomes 1 YUV2 pixel -> Y U Y V
+            2x4x1 >> 1x1x4 YUYV (1 pixel)
+        Args:
+            input_name (Path, optional): input file name. Defaults to None.
+            output_name (Path, optional): output file name. Defaults to None.
+
+        Returns:
+            Pillow Image: returns YUV422 image.
+        """
+        img = self._imgread(input_name)
+        if img.dtype == np.uint8:
+            img = img.astype(np.float32) - 128.0
+        width_ds = 4        # raw and yuv horizontal sample 
+        width_step = 4      # width step (2x4)
+        height_ds = 2       # raw and yuv vertical sample
+        ch_out = 4          # YUV422 has 4 channels        
+        # out sizes
+        out_size = (self.height // height_ds, self.width // width_ds, 4)
+        out_img = np.zeros(out_size, dtype=np.float32).flatten() # 1D array
+        row_len = self.width // width_ds * ch_out # in reallity is self.width
+        # loop over the image
+        for j in range(0, self.height, height_ds):
+            ypos = (j // height_ds) * row_len  # this is ptr_out height location
+            for i in range(0, self.width, width_step): # 4
+                # this is ptr_out width location 
+                # simplifies to (rgb_xpos = i)
+                xpos = (i // width_ds) * ch_out
+                pos = ypos + xpos
+                block_2x4 = img[j : j + height_ds, i : i + width_step, 0].astype(np.float32).flatten()
+                R1 = block_2x4[0]
+                G1 = block_2x4[1]
+                B1 = block_2x4[5]
+                R2 = block_2x4[2]
+                G2 = block_2x4[3]
+                B2 = block_2x4[7]
+                
+                # offsets
+                OY = 128
+                OU = 128
+                OV = 128
+                
+                # YUV conversion
+                Y  =  (0.257 * R1) + (0.504 * G1) + (0.098 * B1) + OY
+                U  = -(0.148 * R1) - (0.291 * G1) + (0.439 * B1) + OU
+                V  =  (0.439 * R1) - (0.368 * G1) - (0.071 * B1) + OV
+                Y2 =  (0.257 * R2) + (0.504 * G2) + (0.098 * B2) + OY
+                
+                out_img[pos] = Y
+                out_img[pos + 1] = U
+                out_img[pos + 2] = Y2
+                out_img[pos + 3] = V
+                                
+        out_img = out_img.reshape(out_size)
+        out_img_pil = self._imgsave(out_img, input_name, output_name)
+        return out_img_pil
 
     # ------------------ RGB ------------------
     def rgb_to_png(self, input_name=None, output_name=None):
@@ -323,9 +381,19 @@ class ImageMetrics(object):
             assert ratio_psnr > self.ratio_tol, f"PSNR ratio is {ratio_psnr}"
 
 
+
+def yuv422_to_rgb_and_save(pil_image, width, height, output_file):
+    arr = np.array(pil_image)
+    arr = arr.reshape((height, width, 2))
+    yuv_image = cv2.cvtColor(arr, cv2.COLOR_YUV2RGB_YUY2)
+    cv2.imwrite(output_file, yuv_image)
+    
 if __name__ == "__main__":
     raw_in = folder_in / "capture0_int8.raw"
     input_size = ImgSize(height=200, width=200, channels=1, dtype=np.int8)
     img_decoder = ImageDecoder(input_size)
-    img_decoder.raw8_to_rgb1(raw_in)
-    img_decoder.plot()
+    img = img_decoder.raw8_to_yuv422_xcore(raw_in, None)
+    yuv422_to_rgb_and_save(img, 100, 100, "yuv422.png")
+    img_sum = np.sum(img)
+    print("Sum of YUV422 image:", img_sum)  
+    # img_decoder.plot()

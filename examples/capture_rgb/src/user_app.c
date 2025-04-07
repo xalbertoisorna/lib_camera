@@ -24,25 +24,31 @@ void sim_model_invoke() {
     delay_milliseconds_cpp(DELAY_MILISECONDS);
 }
 
-static
+static inline
 void save_image(image_cfg_t* image, char* filename) {
-    uint8_t * img_ptr = (uint8_t*)image->ptr;
-    camera_io_write_image_file(filename, img_ptr, image->height, image->width, image->channels); // this will close the file as well
+    camera_io_write_image_file(
+        filename, 
+        (uint8_t*)image->ptr, 
+        image->height, 
+        image->width, 
+        image->channels);
+    printstr("Image saved to file: ");
+    printstrln(filename);
 }
 
 void user_app(chanend_t c_cam) {
 
     // Image and configuration
-    const unsigned h = 200;
-    const unsigned w = 200;
-    const unsigned ch = 3;
+    const unsigned h = 192;
+    const unsigned w = 192;
+    const unsigned ch = 2;
     const unsigned img_size = h * w * ch;
     int8_t image_buffer[img_size] = { 0 };
 
     camera_cfg_t config = {
         .offset_x = 0,
         .offset_y = 0,
-        .mode = MODE_RGB2,
+        .mode = MODE_YUV2,
     };
     image_cfg_t image = {
         .height = h,
@@ -63,25 +69,7 @@ void user_app(chanend_t c_cam) {
     camera_isp_start_capture(c_cam, &image);
     sim_model_invoke(); // this is just some big delay to show that it is non-blocking
     camera_isp_get_capture(c_cam);
+    camera_int8_to_uint8((uint8_t*)image.ptr, image.ptr, image.size);
     save_image(&image, FILE1_NAME);
-
-    // change coordinates
-    config.offset_x = 0.5;
-    config.offset_y = 0.1;
-    unsigned t0 = get_reference_time();
-    camera_isp_coordinates_compute(&image);
-    camera_isp_start_capture(c_cam, &image);
-    camera_isp_get_capture(c_cam);
-    unsigned t1 = get_reference_time();
-    printf("Capture time:\t%f [ms]\n", (t1 - t0) * 1e-5);
-    save_image(&image, FILE2_NAME);
-
-    // (Optional) try something makes no sense
-    /*
-    config.offset_x = 1.8; 
-    config.offset_y = 1.8; 
-    camera_isp_coordinates_compute(&image);
-    camera_isp_coordinates_print(&image);
-    */
     exit(0);
 }

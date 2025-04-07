@@ -26,7 +26,8 @@ typedef enum{
   MODE_RAW  = 0,
   MODE_RGB1 = 1,
   MODE_RGB2 = 2,
-  MODE_RGB4 = 4
+  MODE_RGB4 = 4,
+  MODE_YUV2 = 6,
 } camera_mode_t;
 
 // this struct will hold the configuration for the camera
@@ -110,6 +111,9 @@ void camera_isp_raw8_to_raw8(image_cfg_t* image, int8_t* data_in, unsigned ln);
 void camera_isp_raw8_to_rgb1(image_cfg_t* image, int8_t* data_in, unsigned ln);
 void camera_isp_raw8_to_rgb2(image_cfg_t* image, int8_t* data_in, unsigned ln);
 void camera_isp_raw8_to_rgb4(image_cfg_t* image, int8_t* data_in, unsigned ln);
+
+// ------- RGB to YUV -------------------
+void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned ln);
 
 // -------- White Balancing -------------------
 void camera_isp_white_balance(image_cfg_t* image);

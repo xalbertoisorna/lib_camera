@@ -69,6 +69,9 @@ void handle_post_process(image_cfg_t* image) {
   if (image->ptr == NULL) {
     return;
   }
+  if ((image->config->mode == MODE_RAW) || (image->config->mode == MODE_YUV2)) {
+    return;
+  }
   // AWB
   camera_isp_white_balance(image);
   // AE
@@ -119,6 +122,10 @@ void handle_expected_lines(image_cfg_t* image, int8_t* data_in) {
       camera_isp_raw8_to_rgb4(image, data_in, ln);
       break;
     }
+    case MODE_YUV2:{
+      camera_isp_raw8_to_yuv2(image, data_in, ln);
+      break;
+    }
     default:{
       xassert(0 && "mode not supported");
       break;
@@ -143,6 +150,11 @@ void camera_isp_coordinates_compute(image_cfg_t* img_cfg){
   unsigned mode = cfg->mode;
   unsigned max_size = sensor_width_max_values[mode];
   unsigned scale = (mode == MODE_RAW) ? 1 : (unsigned)(mode);
+
+  // scale correction for yuv422
+  if (mode == MODE_YUV2) {
+    scale = 2;
+  }
 
   // Compute the coordinates of the region of interest
   cfg->x1 = cfg->offset_x * SENSOR_WIDHT;
@@ -171,6 +183,11 @@ void camera_isp_coordinates_compute(image_cfg_t* img_cfg){
   // if raw ensure channels are 1, else 3
   unsigned cond_raw = (mode == MODE_RAW && img_cfg->channels == 1);
   unsigned cond_rgb = (mode != MODE_RAW && img_cfg->channels == 3);
+
+  // fix condition rgb for yuv422
+  if (mode == MODE_YUV2) {
+    cond_rgb = (img_cfg->channels == 2);
+  }
 
   // debug info
   debug_printf("Coords: x1:%d, y1:%d, x2:%d, y2:%d\n", cfg->x1, cfg->y1, cfg->x2, cfg->y2);

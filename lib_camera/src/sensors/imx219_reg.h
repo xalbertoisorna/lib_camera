@@ -35,7 +35,7 @@
 
 // Gain params
 #define GAIN_MIN_DB          0
-#define GAIN_DEFAULT_DB     40
+#define GAIN_DEFAULT_DB     40  
 #define GAIN_MAX_DB         84
 
 // Test pattern registers
