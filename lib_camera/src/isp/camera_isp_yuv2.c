@@ -19,7 +19,6 @@ void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_RGB2_MAX_SI
     const int U_coeff[3] = {-38, -74, 112};
     const int V_coeff[3] = {112, -94, -18};
     
-
     for (unsigned x = 0; x <= (img_width * 2) - 4; x += 4) {
         int r0 = input_rows[0][x+0];
         int g0 = input_rows[0][x+1];
@@ -28,7 +27,7 @@ void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_RGB2_MAX_SI
         int b0 = input_rows[1][x+1];
         int b1 = input_rows[1][x+3];
 
-        // fix wb 
+        // fix wb *1.5 red and blue
         r0 = ((r0 * 3) >> 1) + 84;
         b0 = ((b0 * 3) >> 1) + 84;
         r1 = ((r1 * 3) >> 1) + 84;
@@ -41,7 +40,6 @@ void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_RGB2_MAX_SI
         int Y1 = (Y_coeff[0] * r1 + Y_coeff[1] * g1 + Y_coeff[2] * b1) >> 8;
 
         // clamp everything int8 range
-        // using INT8_MAX and INT8_MIN to avoid overflow
         Y0 = (Y0 < INT8_MIN) ? INT8_MIN : (Y0 > INT8_MAX) ? INT8_MAX : Y0;
         U0 = (U0 < INT8_MIN) ? INT8_MIN : (U0 > INT8_MAX) ? INT8_MAX : U0;
         V0 = (V0 < INT8_MIN) ? INT8_MIN : (V0 > INT8_MAX) ? INT8_MAX : V0;
