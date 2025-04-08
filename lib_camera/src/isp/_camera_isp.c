@@ -38,10 +38,13 @@ static struct {
 };
 
 const unsigned sensor_width_max_values[] = {
-  MODE_RAW_MAX_SIZE,
-  MODE_RGB1_MAX_SIZE,
-  MODE_RGB2_MAX_SIZE,
-  MODE_RGB4_MAX_SIZE
+  MODE_RAW_MAX_SIZE,    // 0
+  MODE_RGB1_MAX_SIZE,   // 1
+  MODE_RGB2_MAX_SIZE,   // 2
+  0,                    // 3
+  MODE_RGB4_MAX_SIZE,   // 4
+  0,                    // 5
+  MODE_YUV2_MAX_SIZE    // 6
 };
 
 // -------- Image transformations --------

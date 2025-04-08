@@ -17,6 +17,7 @@
 #define MODE_RGB1_MAX_SIZE          (200)
 #define MODE_RGB2_MAX_SIZE          (400)
 #define MODE_RGB4_MAX_SIZE          (800)
+#define MODE_YUV2_MAX_SIZE          (400)
 
 
 C_API_START
