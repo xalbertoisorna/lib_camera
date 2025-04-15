@@ -6,20 +6,28 @@
 
 #include <debug_print.h>
 #include <xcore/assert.h>
+#include <xcore/chanend.h>
 
 #include "camera.h"
 #include "camera_isp.h"
 #include "camera_utils.h"
 
+#define STREAM_DATA 1
 
+extern
+void stream_line(image_cfg_t* image, int8_t *out_ptr, unsigned img_width);
+
+static
 void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_RGB2_MAX_SIZE], unsigned img_width){
     
     // YUV (BT.601) fixed point coeffs
     const int Y_coeff[3] = {66, 129, 25};
     const int U_coeff[3] = {-38, -74, 112};
     const int V_coeff[3] = {112, -94, -18};
-    
-    for (unsigned x = 0; x <= (img_width * 2) - 4; x += 4) {
+    const unsigned steps = 4;
+    //const unsigned steps = 32;
+    unsigned loop_size = (img_width * 2 - 4) >> 1;
+    for (unsigned x = 0; x <= loop_size; x += steps) {
         int r0 = input_rows[0][x+0];
         int g0 = input_rows[0][x+1];
         int r1 = input_rows[0][x+2];
@@ -46,13 +54,12 @@ void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_RGB2_MAX_SI
         Y1 = (Y1 < INT8_MIN) ? INT8_MIN : (Y1 > INT8_MAX) ? INT8_MAX : Y1;
 
         // Output
-        out_ptr[x+0] = (int8_t)Y0;
-        out_ptr[x+1] = (int8_t)U0;
-        out_ptr[x+2] = (int8_t)Y1;
-        out_ptr[x+3] = (int8_t)V0;
+        out_ptr[x+0] = ((int8_t)Y0) ^ 0x80;
+        out_ptr[x+1] = ((int8_t)U0) ^ 0x80;
+        out_ptr[x+2] = ((int8_t)Y1) ^ 0x80;
+        out_ptr[x+3] = ((int8_t)V0) ^ 0x80;
     }
 }
-
 
 void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned sensor_ln){
     unsigned x1 = image->config->x1;
@@ -70,5 +77,8 @@ void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned senso
         unsigned img_ln = (sensor_ln - y1 - 1) >> 1;
         int8_t *out_ptr = img_ptr + ((img_ln * img_width)) * (img_channels);
         block_raw8_to_yuv422(out_ptr, input_rows, img_width);
+        #if (STREAM_DATA) // send to USB
+            stream_line(image, out_ptr, img_width);
+        #endif
     }
 }

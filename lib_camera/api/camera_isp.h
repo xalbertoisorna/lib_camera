@@ -8,6 +8,8 @@
 #include "api.h"
 #include "camera.h" // packet size
 
+#include <xcore/chanend.h>
+
 // MIPI packet size
 #define MIPI_MAX_PKT_SIZE_BYTES     ((SENSOR_WIDHT) + 4)
 #define MIPI_PKT_BUFFER_COUNT       (4)
@@ -52,6 +54,7 @@ typedef struct {
   unsigned size;
   int8_t* ptr;
   camera_cfg_t* config;
+  chanend_t c_usb; // channel to send data to the USB
 } image_cfg_t;
 
 // this struct will hold the mipi header and data

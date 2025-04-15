@@ -36,7 +36,7 @@ void save_image(image_cfg_t* image, char* filename) {
     printstrln(filename);
 }
 
-void user_app(chanend_t c_cam) {
+void user_app(chanend_t c_cam, chanend_t c_usb) {
 
     // Image and configuration
     const unsigned h = 192;
@@ -56,7 +56,8 @@ void user_app(chanend_t c_cam) {
         .channels = ch,
         .size = h*w*ch,
         .ptr = &image_buffer[0],
-        .config = &config
+        .config = &config,
+        .c_usb = c_usb,
     };
 
     // wait a few seconds and ask somthing
@@ -66,10 +67,20 @@ void user_app(chanend_t c_cam) {
     
     // set coords and send to ISP
     camera_isp_coordinates_compute(&image);
+    
+    unsigned t0 = get_reference_time();
     camera_isp_start_capture(c_cam, &image);
-    sim_model_invoke(); // this is just some big delay to show that it is non-blocking
     camera_isp_get_capture(c_cam);
-    camera_int8_to_uint8((uint8_t*)image.ptr, image.ptr, image.size);
+    unsigned t1 = get_reference_time();
+    printf("Capture total time: %u [ticks]\n", (t1 - t0));
+
+    t0 = get_reference_time();
+    camera_isp_start_capture(c_cam, &image);
+    camera_isp_get_capture(c_cam);
+    t1 = get_reference_time();
+    printf("Capture total time: %u [ticks]\n", (t1 - t0));
+
+    // camera_int8_to_uint8((uint8_t*)image.ptr, image.ptr, image.size);
     save_image(&image, FILE1_NAME);
     exit(0);
 }

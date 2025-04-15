@@ -55,7 +55,7 @@ const unsigned sensor_width_max_values[] = {
 static
 void handle_unknown_packet(
   mipi_data_type_t data_type) {
-  xassert(data_type < 0x3F && "Packet non valid");
+ xassert(data_type < 0x3F && "Packet non valid");
 }
 
 static
@@ -86,7 +86,7 @@ void handle_end_of_frame(
   image_cfg_t* image,
   chanend_t c_cam)
 {
-  camera_sensor_stop();
+  //camera_sensor_stop();
   if (image->ptr != NULL) {
     ph_state.capture_finished = 1;
     chan_out_byte(c_cam, 1);
@@ -222,6 +222,10 @@ void camera_isp_get_capture(chanend_t c_cam) {
 
 // -------- Frame handling --------------
 
+// Timing
+static int64_t t_init=0;
+static int64_t t_end=0;
+
 static
 void camera_isp_packet_handler(
   const mipi_packet_t* pkt,
@@ -236,9 +240,7 @@ void camera_isp_packet_handler(
   if (ph_state.wait_for_frame_start
     && data_type != MIPI_DT_FRAME_START) return;
 
-  // Timing
-  static uint32_t t_init=0;
-  static uint32_t t_end=0;
+
 
   // Data pointers calculation
   int8_t* data_in = (int8_t*)(&pkt->payload[0]);
@@ -262,7 +264,6 @@ void camera_isp_packet_handler(
 
     case MIPI_DT_FRAME_END:
       t_end = get_reference_time();
-      debug_printf("Frame time: %d cycles\n", t_end - t_init);
       handle_post_process(image_cfg);
       handle_end_of_frame(image_cfg, c_isp_to_user);
       break;
