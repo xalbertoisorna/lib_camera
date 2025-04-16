@@ -27,7 +27,7 @@
 #define REG_ORIENTATION   0x0172
 
 // PLL settings
-#define PLL_VT_MPY          0x0024// pll1 - pix clk
+#define PLL_VT_MPY          0x0028// pll1 - pix clk
 #define PLL_OP_MPY          0x0040 // pll2 - mipi clk
 
 // if PLL1 < PLL2 data always correct
@@ -67,8 +67,8 @@ static i2c_line_t imx219_common_regs[] = {
 
   /* PLL Clock Table */
   { 0x812A, 0x1800 }, /* EXCK_FREQ          24.00, for 24 Mhz */
-  { 0x0304, 0x03 }, /* PREPLLCK_VT_DIV      2, for pre divide by 2 */
-  { 0x0305, 0x03 }, /* PREPLLCK_OP_DIV      2, for pre divide by 2 */
+  { 0x0304, 0x02 }, /* PREPLLCK_VT_DIV      2, for pre divide by 2 */
+  { 0x0305, 0x02 }, /* PREPLLCK_OP_DIV      2, for pre divide by 2 */
   { 0x8306, PLL_VT_MPY}, /* PLL_VT_MPY      0x27, for multiply by 39, pixclk=187.2 MHz */
   { 0x830C, PLL_OP_MPY}, /* PLL_OP_MPY      0x40, for multiply by 64, MIPI clk=768 MHz */
   { 0x0301, 0x08 }, /* VTPXCK_DIV           5, ? */
@@ -76,20 +76,23 @@ static i2c_line_t imx219_common_regs[] = {
   { 0x0309, 0x08 }, /* OPPXCK_DIV           8, has to match RAW8 if you have raw8*/
   { 0x030B, 0x01 }, /* OPSYCK_DIV           1, has to be 1? */
   
-  // min_line_length_pck
-  {0x1144, 0x0D},    
-  {0x1145, 0x78},
-
-  // min_line_blanking_pck
+  // pck clock
   {0x1148, 0x00},    
   {0x1149, 0xF0},
 
-  // min_frame_blanking_lines
-  {0x114A, 0x00},    
-  {0x114B, 0x20},
-
-  // Fast standby 
-  {0x0106, 0x01},
+  /* Undocumented registers */
+  {0x455e, 0x00},
+  {0x471e, 0x4b},
+  {0x4767, 0x0f},
+  {0x4750, 0x14},
+  {0x4540, 0x00},
+  {0x47b4, 0x14},
+  {0x4713, 0x30},
+  {0x478b, 0x10},
+  {0x478f, 0x10},
+  {0x4793, 0x10},
+  {0x4797, 0x0e},
+  {0x479b, 0x0e},
 
   /* Frame Bank Register Group "A" */
   {0x0162, 0x0d},	/* Line_Length_A */
@@ -103,6 +106,7 @@ static i2c_line_t imx219_common_regs[] = {
   {0x012a, 0x18},	/* EXCK_Freq */
   {0x012b, 0x00},
 };
+
 
 static i2c_line_t imx219_lanes_regs[] = {
   {CSI_LANE_MODE_REG, CSI_LANE_MODE_2_LANES}

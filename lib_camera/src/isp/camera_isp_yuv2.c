@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <debug_print.h>
 #include <xcore/assert.h>
@@ -12,10 +13,8 @@
 #include "camera_isp.h"
 #include "camera_utils.h"
 
-#define STREAM_DATA 1
-
 extern
-void stream_line(image_cfg_t* image, int8_t *out_ptr, unsigned img_width);
+void tx_line(image_cfg_t* image, int8_t *out_ptr, unsigned img_width, unsigned img_ln);
 
 static
 void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_RGB2_MAX_SIZE], unsigned img_width){
@@ -76,6 +75,5 @@ void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned senso
         unsigned img_ln = (sensor_ln - y1 - 1) >> 1;
         int8_t *out_ptr = img_ptr + ((img_ln * img_width)) * (img_channels);
         block_raw8_to_yuv422(out_ptr, input_rows, img_width);
-        stream_line(image, out_ptr, img_width);
     }
 }

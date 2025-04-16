@@ -86,7 +86,7 @@ void handle_end_of_frame(
   image_cfg_t* image,
   chanend_t c_cam)
 {
-  //camera_sensor_stop();
+  camera_sensor_stop();
   if (image->ptr != NULL) {
     ph_state.capture_finished = 1;
     chan_out_byte(c_cam, 1);
@@ -264,6 +264,7 @@ void camera_isp_packet_handler(
 
     case MIPI_DT_FRAME_END:
       t_end = get_reference_time();
+      //debug_printf("Frame time: %d cycles\n", t_end - t_init);
       handle_post_process(image_cfg);
       handle_end_of_frame(image_cfg, c_isp_to_user);
       break;
