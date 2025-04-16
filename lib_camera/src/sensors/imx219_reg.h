@@ -27,8 +27,8 @@
 #define REG_ORIENTATION   0x0172
 
 // PLL settings
-#define PLL_VT_MPY          0x0026 // pll1 - pix clk
-#define PLL_OP_MPY          0x0036 // pll2 - mipi clk
+#define PLL_VT_MPY          0x0024// pll1 - pix clk
+#define PLL_OP_MPY          0x0040 // pll2 - mipi clk
 
 // if PLL1 < PLL2 data always correct
 // if PLL1 > PLL2 FIFO could handle

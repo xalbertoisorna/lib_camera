@@ -105,7 +105,6 @@ void handle_expected_lines(image_cfg_t* image, int8_t* data_in) {
   if (c1 || c2 || c3) {
     return;
   }
-  
   // Provide the image data to the user
   switch (mode)
   {
@@ -225,6 +224,7 @@ void camera_isp_get_capture(chanend_t c_cam) {
 // Timing
 static int64_t t_init=0;
 static int64_t t_end=0;
+
 
 static
 void camera_isp_packet_handler(

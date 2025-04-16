@@ -25,8 +25,7 @@ void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_RGB2_MAX_SI
     const int U_coeff[3] = {-38, -74, 112};
     const int V_coeff[3] = {112, -94, -18};
     const unsigned steps = 4;
-    //const unsigned steps = 32;
-    unsigned loop_size = (img_width * 2 - 4) >> 1;
+    unsigned loop_size = ((img_width << 1) - 4);
     for (unsigned x = 0; x <= loop_size; x += steps) {
         int r0 = input_rows[0][x+0];
         int g0 = input_rows[0][x+1];
@@ -77,8 +76,6 @@ void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned senso
         unsigned img_ln = (sensor_ln - y1 - 1) >> 1;
         int8_t *out_ptr = img_ptr + ((img_ln * img_width)) * (img_channels);
         block_raw8_to_yuv422(out_ptr, input_rows, img_width);
-        #if (STREAM_DATA) // send to USB
-            stream_line(image, out_ptr, img_width);
-        #endif
+        stream_line(image, out_ptr, img_width);
     }
 }
