@@ -11,7 +11,7 @@
 
 // CSI LANE
 #define CSI_LANE_MODE_REG 0x0114
-#define CSI_LANE_MODE_2_LANES 1 
+#define CSI_LANE_MODE_2_LANES 1
 #define CSI_LANE_MODE_4_LANES 3
 
 // BINNING
@@ -27,7 +27,7 @@
 #define REG_ORIENTATION   0x0172
 
 // PLL settings
-#define PLL_VT_MPY          0x0028// pll1 - pix clk
+#define PLL_VT_MPY          0x0032// pll1 - pix clk
 #define PLL_OP_MPY          0x0040 // pll2 - mipi clk
 
 // if PLL1 < PLL2 data always correct
@@ -35,7 +35,7 @@
 
 // Gain params
 #define GAIN_MIN_DB          0
-#define GAIN_DEFAULT_DB     40  
+#define GAIN_DEFAULT_DB     40
 #define GAIN_MAX_DB         84
 
 // Test pattern registers
@@ -75,9 +75,9 @@ static i2c_line_t imx219_common_regs[] = {
   { 0x0303, 0x01 }, /* VTSYCK_DIV           1, ? */
   { 0x0309, 0x08 }, /* OPPXCK_DIV           8, has to match RAW8 if you have raw8*/
   { 0x030B, 0x01 }, /* OPSYCK_DIV           1, has to be 1? */
-  
+
   // pck clock
-  {0x1148, 0x00},    
+  {0x1148, 0x00},
   {0x1149, 0xF0},
 
   /* Undocumented registers */

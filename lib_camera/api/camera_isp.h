@@ -19,7 +19,7 @@
 #define MODE_RGB1_MAX_SIZE          (200)
 #define MODE_RGB2_MAX_SIZE          (400)
 #define MODE_RGB4_MAX_SIZE          (800)
-#define MODE_YUV2_MAX_SIZE          (400)
+#define MODE_YUV2_MAX_SIZE          (800)
 
 
 C_API_START
@@ -82,7 +82,7 @@ void camera_isp_coordinates_print(image_cfg_t* image_cfg);
 
 /**
  * @brief send camera configuration to isp and starts capture
- * 
+ *
  * @param c_cam camera channel
  * @param image image pointer and conficuration
  */
@@ -91,7 +91,7 @@ void camera_isp_start_capture(chanend_t c_cam, image_cfg_t *image);
 
 /**
  * @brief recieves image from isp
- * 
+ *
  * @param c_cam camera channel
  * @param image image pointer and conficuration
  */

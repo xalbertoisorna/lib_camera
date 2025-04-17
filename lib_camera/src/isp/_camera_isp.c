@@ -12,7 +12,7 @@
 
 // debug options
 // (can be enabled via: -DDEBUG_PRINT_ENABLE_CAM_ISP=1)
-#define DEBUG_UNIT CAM_ISP 
+#define DEBUG_UNIT CAM_ISP
 #include <debug_print.h>
 
 #include "camera.h"
@@ -97,7 +97,7 @@ static
 void handle_expected_lines(image_cfg_t* image, int8_t* data_in) {
   unsigned ln = ph_state.in_line_number;
   camera_mode_t mode = image->config->mode;
-  
+
   // Check if the image region is valid
   uint8_t c1 = image->ptr == NULL;
   uint8_t c2 = ln < image->config->y1;
@@ -142,7 +142,7 @@ void handle_expected_lines(image_cfg_t* image, int8_t* data_in) {
 inline
 void camera_isp_coordinates_print(image_cfg_t* img_cfg){
   camera_cfg_t *cfg = img_cfg->config;
-  printf("x1: %d, y1: %d, x2: %d, y2: %d\n", cfg->x1, cfg->y1, cfg->x2, cfg->y2);  
+  printf("x1: %d, y1: %d, x2: %d, y2: %d\n", cfg->x1, cfg->y1, cfg->x2, cfg->y2);
 }
 
 void camera_isp_coordinates_compute(image_cfg_t* img_cfg){
@@ -209,12 +209,12 @@ void camera_isp_coordinates_compute(image_cfg_t* img_cfg){
 }
 
 // -------- Image API -------------------
-inline 
+inline
 void camera_isp_start_capture(chanend_t c_cam, image_cfg_t *image) {
   chan_out_buf_byte(c_cam, (uint8_t*)image, sizeof(image_cfg_t));
 }
 
-inline 
+inline
 void camera_isp_get_capture(chanend_t c_cam) {
   chan_in_byte(c_cam);
 }

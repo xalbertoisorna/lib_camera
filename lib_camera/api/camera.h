@@ -4,7 +4,7 @@
 #pragma once
 
 #include <stdio.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 #include <stdint.h>
 
 #include "api.h"
@@ -17,7 +17,7 @@
 #define CH_ISP_USER     1 // Channel between ISP and user
 
 // High-Level Sensor Configuration
-#define SENSOR_WIDHT                800
+#define SENSOR_WIDHT                1024
 #define SENSOR_HEIGHT               800
 
 #define CONFIG_FLIP                 FLIP_NONE

@@ -34,13 +34,13 @@ void camera_sensor_init() {
     .sensor_width = SENSOR_WIDHT,
     .sensor_height = SENSOR_HEIGHT
   };
-  
+
   // Global sensor object
   camera_sensor_ptr = new IMX219(
-    (i2c_config_t)i2c_conf, 
-    (resolution_t)res, 
-    (pixel_format_t)MIPI_DT_RAW8, 
-    (binning_t)CONFIG_BINNING, 
+    (i2c_config_t)i2c_conf,
+    (resolution_t)res,
+    (pixel_format_t)MIPI_DT_RAW8,
+    (binning_t)CONFIG_BINNING,
     (centralise_t)CONFIG_CENTRALISE);
 
   // Init the I2C sensor first configuration

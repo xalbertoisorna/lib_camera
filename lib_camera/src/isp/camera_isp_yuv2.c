@@ -17,14 +17,15 @@ extern
 void tx_line(image_cfg_t* image, int8_t *out_ptr, unsigned img_width, unsigned img_ln);
 
 static
-void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_RGB2_MAX_SIZE], unsigned img_width){
-    
+void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SIZE], unsigned img_width){
+
     // YUV (BT.601) fixed point coeffs
     const int Y_coeff[3] = {66, 129, 25};
     const int U_coeff[3] = {-38, -74, 112};
     const int V_coeff[3] = {112, -94, -18};
     const unsigned steps = 4;
     unsigned loop_size = ((img_width << 1) - 4);
+    loop_size = loop_size/2;
     for (unsigned x = 0; x <= loop_size; x += steps) {
         int r0 = input_rows[0][x+0];
         int g0 = input_rows[0][x+1];
@@ -68,7 +69,7 @@ void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned senso
     int8_t* img_ptr = image->ptr;
 
     // 2 rows of 400 pixels
-    static int8_t input_rows[2][MODE_RGB2_MAX_SIZE] ALIGNED_8 = { {0} };
+    static int8_t input_rows[2][MODE_YUV2_MAX_SIZE] ALIGNED_8 = { {0} };
     unsigned buff_ln = sensor_ln % 2;
     xmemcpy(&input_rows[buff_ln][0], data_src, img_width * 2);
     if(buff_ln == 1) {
