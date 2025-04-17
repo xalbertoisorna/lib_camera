@@ -13,20 +13,29 @@
 #include "camera_isp.h"
 #include "camera_utils.h"
 
-extern
-void tx_line(image_cfg_t* image, int8_t *out_ptr, unsigned img_width, unsigned img_ln);
+#define CLAMP(x) ((x < INT8_MIN) ? INT8_MIN : (x > INT8_MAX) ? INT8_MAX : x)
 
 static
 void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SIZE], unsigned img_width){
     
     // YUV (BT.601) fixed point coeffs
-    const int Y_coeff[3] = {66, 129, 25};
-    const int U_coeff[3] = {-38, -74, 112};
-    const int V_coeff[3] = {112, -94, -18};
+    // const int Y_coeff[3] = {66, 129, 25};
+    // const int U_coeff[3] = {-38, -74, 112};
+    // const int V_coeff[3] = {112, -94, -18};
+
+    // Corrected YUV
+    const int a = 99, b = 129, c = 37;
+    const int d = -57, e = -74, f = 168;
+    const int g = 168, h = -94, i = -27;
+    const int ac_rem = 7644; //a*84 + c*84;
+    const int df_rem = 6216; //d*84 + f*84;
+    const int gi_rem = 6956; //g*84 + i*84;
     const unsigned steps = 4;
+    
     unsigned loop_size = ((img_width << 1) - 4);
-    loop_size >>= 1; // make loop shorter
+    loop_size = loop_size >> 1;
     for (unsigned x = 0; x <= loop_size; x += steps) {
+        // Load 2 RAW pixels
         int r0 = input_rows[0][x+0];
         int g0 = input_rows[0][x+1];
         int r1 = input_rows[0][x+2];
@@ -34,23 +43,17 @@ void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SI
         int b0 = input_rows[1][x+1];
         int b1 = input_rows[1][x+3];
 
-        // fix wb *1.5 red and blue
-        r0 = ((r0 * 3) >> 1) + 84;
-        b0 = ((b0 * 3) >> 1) + 84;
-        r1 = ((r1 * 3) >> 1) + 84;
-        b1 = ((b1 * 3) >> 1) + 84;
-
         // YUV conversion
-        int Y0 = (Y_coeff[0] * r0 + Y_coeff[1] * g0 + Y_coeff[2] * b0) >> 8;
-        int U0 = (U_coeff[0] * r0 + U_coeff[1] * g0 + U_coeff[2] * b0) >> 8;
-        int V0 = (V_coeff[0] * r0 + V_coeff[1] * g0 + V_coeff[2] * b0) >> 8;
-        int Y1 = (Y_coeff[0] * r1 + Y_coeff[1] * g1 + Y_coeff[2] * b1) >> 8;
+        int Y0 = (a * r0 + b * g0 + c * b0 + ac_rem) >> 8;
+        int U0 = (d * r0 + e * g0 + f * b0 + df_rem) >> 8;
+        int V0 = (g * r0 + h * g0 + i * b0 + gi_rem) >> 8;
+        int Y1 = (a * r1 + b * g1 + c * b1 + ac_rem) >> 8;
 
         // clamp everything int8 range
-        Y0 = (Y0 < INT8_MIN) ? INT8_MIN : (Y0 > INT8_MAX) ? INT8_MAX : Y0;
-        U0 = (U0 < INT8_MIN) ? INT8_MIN : (U0 > INT8_MAX) ? INT8_MAX : U0;
-        V0 = (V0 < INT8_MIN) ? INT8_MIN : (V0 > INT8_MAX) ? INT8_MAX : V0;
-        Y1 = (Y1 < INT8_MIN) ? INT8_MIN : (Y1 > INT8_MAX) ? INT8_MAX : Y1;
+        Y0 = CLAMP(Y0);
+        U0 = CLAMP(U0);
+        V0 = CLAMP(V0);
+        Y1 = CLAMP(Y1);
 
         // Output
         out_ptr[x+0] = ((int8_t)Y0) ^ 0x80;
