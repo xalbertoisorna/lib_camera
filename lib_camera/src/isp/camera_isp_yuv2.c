@@ -25,6 +25,7 @@ void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SI
     const int V_coeff[3] = {112, -94, -18};
     const unsigned steps = 4;
     unsigned loop_size = ((img_width << 1) - 4);
+    loop_size >>= 1; // make loop shorter
     for (unsigned x = 0; x <= loop_size; x += steps) {
         int r0 = input_rows[0][x+0];
         int g0 = input_rows[0][x+1];
