@@ -264,7 +264,7 @@ void camera_isp_packet_handler(
 
     case MIPI_DT_FRAME_END:
       t_end = get_reference_time();
-      //debug_printf("Frame time: %d cycles\n", t_end - t_init);
+      debug_printf("Frame time: %d cycles\n", t_end - t_init);
       handle_post_process(image_cfg);
       handle_end_of_frame(image_cfg, c_isp_to_user);
       break;
