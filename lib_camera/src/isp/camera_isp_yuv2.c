@@ -79,14 +79,9 @@ void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SI
     static unsigned toggle = 0;
     toggle = (toggle + 1) % 2;
     unsigned loop_size = ((img_width << 1) - 4);
-    unsigned start = loop_size >> 1;
-
-    if (toggle){
-        loop_size = loop_size >> 1;
-        start = 0;
-    }
+    loop_size = loop_size >> 1;
     
-    for (unsigned x = start; x <= loop_size; x += steps) {
+    for (unsigned x = 0; x <= loop_size; x += steps) {
         // Load 2 RAW pixels
         int r0 = input_rows[0][x+0];
         int g0 = input_rows[0][x+1];
