@@ -75,9 +75,6 @@ void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SI
     const int df_rem = 6216; //d*84 + f*84;
     const int gi_rem = 6956; //g*84 + i*84;
     const unsigned steps = 4;
-    
-    static unsigned toggle = 0;
-    toggle = (toggle + 1) % 2;
     unsigned loop_size = ((img_width << 1) - 4);
     loop_size = loop_size >> 1;
     
@@ -141,6 +138,8 @@ void block_raw8_to_yuv422_new(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MA
         
         vlsat16(yuv_vsat);
         vstr(&out_ptr[x]);
+
+        // do xor to get the right values
     }
 }
 
@@ -159,7 +158,7 @@ void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned senso
     if(buff_ln == 1) {
         unsigned img_ln = (sensor_ln - y1 - 1) >> 1;
         int8_t *out_ptr = img_ptr + ((img_ln * img_width)) * (img_channels);
-        block_raw8_to_yuv422_new(out_ptr, input_rows, img_width);
-        //block_raw8_to_yuv422(out_ptr, input_rows, img_width);
+        //block_raw8_to_yuv422_new(out_ptr, input_rows, img_width);
+        block_raw8_to_yuv422(out_ptr, input_rows, img_width);
     }
 }
