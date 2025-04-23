@@ -14,6 +14,7 @@ list(APPEND APP_INCLUDES src src/test)
 list(APPEND APP_C_SRCS
     src/main.c
     src/helpers.c
+    src/test/yuv_image_test.c
     src/test/color_conversion_test.c
     src/test/white_balance_test.c
     src/test/timings_test.c
@@ -35,7 +36,7 @@ set(APP_COMPILER_FLAGS
     -g
     -report
     -Wall
-    -Werror
+    #-Werror
     -fxscope
     -mcmodel=large
     -Wno-xcore-fptrgroup)

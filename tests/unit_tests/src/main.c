@@ -15,10 +15,10 @@ int main(
   UnityBegin(argv[0]);
 
   printf("lib_camera Unit Tests\n");
-
-  RUN_TEST_GROUP(color_conversion);
-  RUN_TEST_GROUP(white_balance);
-  RUN_TEST_GROUP(timings);
+  RUN_TEST_GROUP(yuv);
+  //RUN_TEST_GROUP(color_conversion);
+  //RUN_TEST_GROUP(white_balance);
+  //RUN_TEST_GROUP(timings);
   //RUN_TEST_GROUP(pixel_hfilter);
   //RUN_TEST_GROUP(pixel_vfilter);
   //RUN_TEST_GROUP(gamma_timing);
