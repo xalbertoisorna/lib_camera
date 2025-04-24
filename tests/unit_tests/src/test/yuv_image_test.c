@@ -69,10 +69,12 @@ static inline void vlsat16(const int16_t* shift){
 static inline void vstr(int8_t* ptr){
     asm volatile("vstr %0[0]" :: "r" (ptr));
 }
-inline void vladd_16(int16_t* ptr){
+static inline void vladd_16(int16_t* ptr){
     asm volatile("vladd %0[0]" :: "r" (ptr));
 }
-
+static inline void vladd(int8_t* ptr){
+    asm volatile("vladd %0[0]" :: "r" (ptr));
+}
 
 #define CLAMP(x) ((x < INT8_MIN) ? INT8_MIN : (x > INT8_MAX) ? INT8_MAX : x)
 
@@ -95,6 +97,14 @@ const int8_t adds[16] = {
     YC, UC, YC, VC,
     YC, UC, YC, VC
 };
+
+static const int8_t adds8[32] = {
+    YC, UC, YC, VC,
+    YC, UC, YC, VC,
+    YC, UC, YC, VC,
+    YC, UC, YC, VC
+};
+
 
 // Tests
 TEST(yuv, yuv__simple) // ensure we dont write zeros after the img
@@ -143,6 +153,7 @@ TEST(yuv, yuv__simple) // ensure we dont write zeros after the img
         vlmaccr(kernels_group[i]);
     }
     vlsat16(yuv_vsat);
+    vladd(adds8);
     vstr(res);
 
     // remainders
@@ -153,9 +164,7 @@ TEST(yuv, yuv__simple) // ensure we dont write zeros after the img
     // xor
     for (unsigned i = 0; i < 16; i++)
     {
-        res16[i] = CLAMP(res[i] + adds[i]);
-        res16[i] = ((int8_t)res16[i]);
-        res16[i] = ((int8_t)res16[i]) ^ 0x80;
+        res16[i] = (res[i]) ^ 0x80;
     }
 
     // ---------------------- VPU ---------------------
@@ -200,7 +209,7 @@ TEST(yuv, yuv__simple) // ensure we dont write zeros after the img
 
     // print res
     printf("res: ");
-    for (unsigned i = 0; i < 16; i++)
+    for (unsigned i = 0; i < 32; i++)
     {
         printf("%d ", res16[i]);
     }

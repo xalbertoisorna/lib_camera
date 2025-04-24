@@ -61,10 +61,12 @@ static inline void vlsat16(const int16_t* shift){
 static inline void vstr(int8_t* ptr){
     asm volatile("vstr %0[0]" :: "r" (ptr));
 }
-inline void vladd_16(int16_t* ptr){
+static inline void vladd_16(int16_t* ptr){
     asm volatile("vladd %0[0]" :: "r" (ptr));
 }
-
+static inline void vladd(const int8_t* ptr){
+    asm volatile("vladd %0[0]" :: "r" (ptr));
+}
 // slow C version, we can only afford half screen
 static
 void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SIZE], unsigned img_width){
@@ -117,12 +119,20 @@ void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SI
 #define YC (30)
 #define UC (24)
 #define VC (27)
-const int8_t adds[16] = {
+static const int8_t adds[16] = {
     YC, UC, YC, VC,
     YC, UC, YC, VC,
     YC, UC, YC, VC,
     YC, UC, YC, VC
 };
+
+static const int8_t adds8[32] = {
+    YC, UC, YC, VC,
+    YC, UC, YC, VC,
+    YC, UC, YC, VC,
+    YC, UC, YC, VC
+};
+
 
 // VPU but not working properly version
 static
@@ -137,10 +147,10 @@ void block_raw8_to_yuv422_new(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MA
 
     vpu_prepare_8();
 
-    for (unsigned x = 0; x <= (loop_size / 2); x += steps) {
+    for (unsigned x = 0; x <= (loop_size); x += steps) {
         
+        // load block of 2x16 pixels
         int8_t *src = (int8_t *)&input_rows[0][x];
-
         block_2x16_vpu(vpu_vc, src, line_size); // warning uses R11
         vldc(vpu_vc);
 
@@ -151,13 +161,14 @@ void block_raw8_to_yuv422_new(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MA
             vlmaccr(kernels_group[i]);
         }
         vlsat16(yuv_vsat);
+        vladd(adds8);
         vstr(res);
 
-        // xor
+        // xor to uint8
+        #pragma clang loop unroll(full)
         for (unsigned i = 0; i < 16; i++)
         {
-            int tmp = CLAMP(res[i] + adds[i]);
-            out_ptr[x + i] = ((int8_t)tmp) ^ 0x80;
+            out_ptr[x + i] = (res[i]) ^ 0x80;
         }
     }
 }
