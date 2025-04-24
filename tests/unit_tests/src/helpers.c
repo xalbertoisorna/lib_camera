@@ -44,6 +44,15 @@ void print_array(int8_t* result, size_t size) {
   printf("\n");
 }
 
+void print_array_uint8(uint8_t* result, size_t size) {
+  printf("Array\n");
+  for (unsigned i = 0; i < size; i++) {
+      printf("%d,", result[i]);
+  }
+  printf("\n");
+}
+
+
 
 // Color conversion functions
 YuvValues rgbToYuv(uint8_t r, uint8_t g, uint8_t b) {

@@ -25,8 +25,8 @@ void vldr16(
     uint32_t *out)
 {
     register int32_t *ptr asm("r11") = (int32_t *)in;
-    asm("vldr %0[0]" :: "r" (ptr));
-    asm("vstrpv %0[0], %1" ::"r"(out), "r"(mask));
+    asm volatile("vldr %0[0]" :: "r" (ptr));
+    asm volatile("vstrpv %0[0], %1" ::"r"(out), "r"(mask));
 }
 static inline 
 void block_2x16_vpu(
@@ -37,10 +37,15 @@ void block_2x16_vpu(
     const uint32_t mask = (1 << 16) - 1;
     vldr16(mask, (uint32_t *)src, (uint32_t *)dst);
     vldr16(mask, (uint32_t *)(src + line_size), (uint32_t *)(dst + 16));
+    asm volatile("vclrdr");
 }
 static inline void vpu_prepare_8(){
     asm volatile("vclrdr");
     asm volatile("ldc r11, 0x200");
+    asm volatile("vsetc r11");
+}
+static inline void vpu_prepare_16(){
+    asm volatile("ldc r11, 0x100");
     asm volatile("vsetc r11");
 }
 static inline void vldc(const int8_t* ptr){
@@ -56,7 +61,9 @@ static inline void vlsat16(const int16_t* shift){
 static inline void vstr(int8_t* ptr){
     asm volatile("vstr %0[0]" :: "r" (ptr));
 }
-
+inline void vladd_16(int16_t* ptr){
+    asm volatile("vladd %0[0]" :: "r" (ptr));
+}
 
 // slow C version, we can only afford half screen
 static
@@ -107,6 +114,16 @@ void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SI
     }
 }
 
+#define YC (30)
+#define UC (24)
+#define VC (27)
+const int8_t adds[16] = {
+    YC, UC, YC, VC,
+    YC, UC, YC, VC,
+    YC, UC, YC, VC,
+    YC, UC, YC, VC
+};
+
 // VPU but not working properly version
 static
 void block_raw8_to_yuv422_new(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SIZE], unsigned img_width){
@@ -116,30 +133,32 @@ void block_raw8_to_yuv422_new(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MA
     const unsigned line_size = MODE_YUV2_MAX_SIZE;
 
     int8_t vpu_vc[32] = {0};
-    vpu_prepare_8();
-    for (unsigned x = 0; x <= loop_size; x += steps) {
+    int8_t res[32] = { 0 };
 
+    vpu_prepare_8();
+
+    for (unsigned x = 0; x <= (loop_size / 2); x += steps) {
+        
         int8_t *src = (int8_t *)&input_rows[0][x];
-        block_2x16_vpu(vpu_vc, src, line_size);
+
+        block_2x16_vpu(vpu_vc, src, line_size); // warning uses R11
         vldc(vpu_vc);
 
         // kernel multiplication
+        #pragma clang loop unroll(full)
         for (unsigned i = 0; i < 16; i++)
         {
             vlmaccr(kernels_group[i]);
         }
-        
-        // kernel addition
-        vldc(vcrem);
+        vlsat16(yuv_vsat);
+        vstr(res);
+
+        // xor
         for (unsigned i = 0; i < 16; i++)
         {
-            vlmaccr(remainders_group[i]);
+            int tmp = CLAMP(res[i] + adds[i]);
+            out_ptr[x + i] = ((int8_t)tmp) ^ 0x80;
         }
-        
-        vlsat16(yuv_vsat);
-        vstr(&out_ptr[x]);
-
-        // do xor to get the right values
     }
 }
 
@@ -158,7 +177,7 @@ void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned senso
     if(buff_ln == 1) {
         unsigned img_ln = (sensor_ln - y1 - 1) >> 1;
         int8_t *out_ptr = img_ptr + ((img_ln * img_width)) * (img_channels);
-        //block_raw8_to_yuv422_new(out_ptr, input_rows, img_width);
-        block_raw8_to_yuv422(out_ptr, input_rows, img_width);
+        block_raw8_to_yuv422_new(out_ptr, input_rows, img_width);
+        //block_raw8_to_yuv422(out_ptr, input_rows, img_width);
     }
 }

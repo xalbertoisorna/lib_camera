@@ -76,7 +76,7 @@ void handle_post_process(image_cfg_t* image) {
     return;
   }
   // AWB
-  camera_isp_white_balance(image);
+  // camera_isp_white_balance(image);
   // AE
   //TODO
 }
