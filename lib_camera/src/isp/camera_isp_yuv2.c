@@ -116,22 +116,6 @@ void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SI
     }
 }
 
-#define YC (30)
-#define UC (24)
-#define VC (27)
-static const int8_t adds[16] = {
-    YC, UC, YC, VC,
-    YC, UC, YC, VC,
-    YC, UC, YC, VC,
-    YC, UC, YC, VC
-};
-
-static const int8_t adds8[32] = {
-    YC, UC, YC, VC,
-    YC, UC, YC, VC,
-    YC, UC, YC, VC,
-    YC, UC, YC, VC
-};
 
 
 // VPU but not working properly version
@@ -161,7 +145,7 @@ void block_raw8_to_yuv422_new(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MA
             vlmaccr(kernels_group[i]);
         }
         vlsat16(yuv_vsat);
-        vladd(adds8);
+        vladd(yuv_adds);
         vstr(res);
 
         // xor to uint8

@@ -152,3 +152,14 @@ const int16_t yuv_vsat[16] ALIGNED_4 = {
     8,8,8,8,8,8,8,8,
     8,8,8,8,8,8,8,8
 };
+
+#define YC (30)
+#define UC (24)
+#define VC (27)
+
+const int8_t yuv_adds[32] = {
+    VC, YC, UC, YC,
+    VC, YC, UC, YC,
+    VC, YC, UC, YC,
+    VC, YC, UC, YC,
+};
