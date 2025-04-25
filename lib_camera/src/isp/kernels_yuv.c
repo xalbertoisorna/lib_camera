@@ -10,10 +10,23 @@
 #define ALIGNED_4 __attribute__((aligned(4)))
 #endif
 
-// kernels
-const int8_t a = 99, b = 127, c = 37;
-const int8_t d = -57, e = -74, f = 127;
-const int8_t g = 127, h = -94, i = -27;
+
+// kernels (original)
+/*
+static const int8_t a = 38, b = 75, c = 14;
+static const int8_t d = -21, e = -42, f = 64;
+static const int8_t g = 64, h = -53, i = -10;
+*/
+
+// kernels (wb)
+static const int8_t a = 47, b = 61, c = 18;
+static const int8_t d = -27, e = -34, f = 82;
+static const int8_t g = 80, h = -43, i = -13;
+
+// offsets (wb)
+static const int8_t yk = 0;
+static const int8_t uk = 21;
+static const int8_t vk = 23;
 
 // yuv0
 const int8_t kernels_yuv_y0[32] ALIGNED_4 = {
@@ -88,29 +101,7 @@ const int8_t kernels_yuv_y7[32] ALIGNED_4 = {
 };
 
 
-
-// now remainders
-
-const int8_t rem0[32] ALIGNED_4 = {
-    77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-};
-const int8_t rem1[32] ALIGNED_4 = {
-    62, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-};
-const int8_t rem2[32] ALIGNED_4 = {
-    70, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-};
-const int8_t rem3[32] ALIGNED_4 = {
-    78, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-};
-
-
 //  Externs
-
 const int8_t *kernels_group[16] = {
     
     kernels_yuv_v6, 
@@ -134,32 +125,21 @@ const int8_t *kernels_group[16] = {
     kernels_yuv_y0,
 };
 
-
-const int8_t *remainders_group[16] = {
-    rem0, rem1, rem2, rem3,
-    rem0, rem1, rem2, rem3,
-    rem0, rem1, rem2, rem3,
-    rem0, rem1, rem2, rem3
-};
-
-const int8_t vcrem[32] ALIGNED_4 = {
-    100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, c,
-};
-
-
 const int16_t yuv_vsat[16] ALIGNED_4 = {
-    8,8,8,8,8,8,8,8,
-    8,8,8,8,8,8,8,8
+    7,7,7,7,7,7,7,7,
+    7,7,7,7,7,7,7,7
 };
 
-#define YC (30)
-#define UC (24)
-#define VC (27)
+const int8_t yuv_adds[32] ALIGNED_4 = {
+    yk, uk, yk, vk,
+    yk, uk, yk, vk,
+    
+    yk, uk, yk, vk,
+    yk, uk, yk, vk,
 
-const int8_t yuv_adds[32] = {
-    VC, YC, UC, YC,
-    VC, YC, UC, YC,
-    VC, YC, UC, YC,
-    VC, YC, UC, YC,
+    yk, uk, yk, vk,
+    yk, uk, yk, vk,
+
+    yk, uk, yk, vk,
+    yk, uk, yk, vk,
 };
