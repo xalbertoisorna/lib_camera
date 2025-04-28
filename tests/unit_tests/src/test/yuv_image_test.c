@@ -86,7 +86,7 @@ const int16_t aditions[32] ALIGNED_4 = {
 
 };
 
-const int16_t yuv_vsat2[16] = {
+const int16_t yuv_vsats2[16] = {
     0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0
 };
@@ -150,9 +150,9 @@ TEST(yuv, yuv__simple) // ensure we dont write zeros after the img
     vldc(buff_vpu);
     for (unsigned i = 0 ; i < 16; i++)
     {
-        vlmaccr(kernels_group[i]);
+        vlmaccr(yuv_kernels[i]);
     }
-    vlsat16(yuv_vsat);
+    vlsat16(yuv_vsats);
     vladd(adds8);
     vstr(res);
 

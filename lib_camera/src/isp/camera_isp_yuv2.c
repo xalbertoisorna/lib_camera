@@ -86,10 +86,10 @@ void block_raw8_to_yuv422_new(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MA
         #pragma clang loop unroll(full)
         for (unsigned i = 0; i < 16; i++)
         {
-            vlmaccr(kernels_group[i]);
+            vlmaccr(yuv_kernels[i]);
         }
-        vlsat(yuv_vsat);
-        vladd(yuv_adds);
+        vlsat(yuv_vsats);
+        vladd(yuv_vadds);
         vstr(res);
 
         // xor to uint8

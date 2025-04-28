@@ -10,8 +10,6 @@
 #define ALIGNED_4 __attribute__((aligned(4)))
 #endif
 
-extern const int8_t *kernels_group[16];
-extern const int8_t *remainders_group[16];
-extern const int8_t vcrem[32];
-extern const int8_t yuv_adds[32];
-extern const int16_t yuv_vsat[16];
+extern const int8_t *yuv_kernels[16];
+extern const int8_t yuv_vadds[32];
+extern const int16_t yuv_vsats[16];

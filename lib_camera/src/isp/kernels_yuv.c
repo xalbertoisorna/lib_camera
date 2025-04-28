@@ -102,7 +102,7 @@ const int8_t kernels_yuv_y7[32] ALIGNED_4 = {
 
 
 //  Externs
-const int8_t *kernels_group[16] = {
+const int8_t *yuv_kernels[16] = {
     
     kernels_yuv_v6, 
     kernels_yuv_y7,
@@ -125,12 +125,12 @@ const int8_t *kernels_group[16] = {
     kernels_yuv_y0,
 };
 
-const int16_t yuv_vsat[16] ALIGNED_4 = {
+const int16_t yuv_vsats[16] ALIGNED_4 = {
     7,7,7,7,7,7,7,7,
     7,7,7,7,7,7,7,7
 };
 
-const int8_t yuv_adds[32] ALIGNED_4 = {
+const int8_t yuv_vadds[32] ALIGNED_4 = {
     yk, uk, yk, vk,
     yk, uk, yk, vk,
     
