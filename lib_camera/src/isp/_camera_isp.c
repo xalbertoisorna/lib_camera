@@ -29,12 +29,14 @@ static struct {
   unsigned in_line_number;
   unsigned out_line_number;
   unsigned capture_finished;
+  unsigned ae_value;
 } ph_state = {
     1,  // wait_for_frame_start
     0,  // frame_number
     0,  // in_line_number
-    0,   // out_line_number
-    0   // capture_finished
+    0,  // out_line_number
+    0,  // capture_finished
+    1,  // ae_value
 };
 
 const unsigned sensor_width_max_values[] = {
@@ -47,7 +49,27 @@ const unsigned sensor_width_max_values[] = {
   MODE_YUV2_MAX_SIZE    // 6
 };
 
-// -------- Image transformations --------
+
+// -------- Image API -------------------
+void camera_isp_prepare_capture(chanend_t c_cam, image_cfg_t* image)
+{
+  const unsigned max_steps = 20;
+  for (unsigned i = 0; i < max_steps; i++) {
+    camera_isp_start_capture(c_cam, image);
+    camera_isp_get_capture(c_cam);
+    if (!ph_state.ae_value) {
+      break;
+    }
+  }
+}
+ 
+void camera_isp_start_capture(chanend_t c_cam, image_cfg_t *image) {
+  chan_out_buf_byte(c_cam, (uint8_t*)image, sizeof(image_cfg_t));
+}
+ 
+void camera_isp_get_capture(chanend_t c_cam) {
+  chan_in_byte(c_cam);
+}
 
 
 // -------- State handlers --------
@@ -55,7 +77,7 @@ const unsigned sensor_width_max_values[] = {
 static
 void handle_unknown_packet(
   mipi_data_type_t data_type) {
- xassert(data_type < 0x3F && "Packet non valid");
+  xassert(data_type < 0x3F && "Packet non valid");
 }
 
 static
@@ -66,19 +88,28 @@ void handle_no_expected_lines() {
   }
 }
 
-static
-void handle_post_process(image_cfg_t* image) {
+static void handle_post_process(image_cfg_t *image)
+{
   // Image pointer could be NULL if EOF is reached before asking a picture
-  if (image->ptr == NULL) {
+  if (image->ptr == NULL)
+  {
     return;
   }
-  if ((image->config->mode == MODE_RAW) || (image->config->mode == MODE_YUV2)) {
-    return;
+
+#if (CONFIG_APPLY_AWB)
+  if (image->config->mode != MODE_YUV2)
+  {
+    camera_isp_white_balance(image);
   }
-  // AWB
-  // camera_isp_white_balance(image);
-  // AE
-  //TODO
+#endif
+
+#if (CONFIG_APPLY_AE)
+  ph_state.ae_value = camera_isp_auto_exposure(image);
+  if (ph_state.ae_value)
+  {
+    camera_sensor_set_exposure(ph_state.ae_value);
+  }
+#endif
 }
 
 static
@@ -105,6 +136,7 @@ void handle_expected_lines(image_cfg_t* image, int8_t* data_in) {
   if (c1 || c2 || c3) {
     return;
   }
+  
   // Provide the image data to the user
   switch (mode)
   {
@@ -190,7 +222,7 @@ void camera_isp_coordinates_compute(image_cfg_t* img_cfg){
   if (mode == MODE_YUV2) {
     cond_rgb = (img_cfg->channels == 2);
   }
-
+  
   // debug info
   debug_printf("Coords: x1:%d, y1:%d, x2:%d, y2:%d\n", cfg->x1, cfg->y1, cfg->x2, cfg->y2);
   debug_printf("Sensor: w:%d, h:%d\n", cfg->sensor_width, cfg->sensor_height);
@@ -208,23 +240,8 @@ void camera_isp_coordinates_compute(image_cfg_t* img_cfg){
   xassert((img_cfg->height % 4) == 0 && "height has to be divisible by 4");
 }
 
-// -------- Image API -------------------
-inline 
-void camera_isp_start_capture(chanend_t c_cam, image_cfg_t *image) {
-  chan_out_buf_byte(c_cam, (uint8_t*)image, sizeof(image_cfg_t));
-}
-
-inline 
-void camera_isp_get_capture(chanend_t c_cam) {
-  chan_in_byte(c_cam);
-}
 
 // -------- Frame handling --------------
-
-// Timing
-static int64_t t_init=0;
-static int64_t t_end=0;
-
 
 static
 void camera_isp_packet_handler(
@@ -240,7 +257,9 @@ void camera_isp_packet_handler(
   if (ph_state.wait_for_frame_start
     && data_type != MIPI_DT_FRAME_START) return;
 
-
+  // Timing
+  static uint32_t t_init=0;
+  static uint32_t t_end=0;
 
   // Data pointers calculation
   int8_t* data_in = (int8_t*)(&pkt->payload[0]);

@@ -44,29 +44,85 @@ static inline void vpu_prepare_8(){
     asm volatile("ldc r11, 0x200");
     asm volatile("vsetc r11");
 }
-static inline void vpu_prepare_16(){
-    asm volatile("ldc r11, 0x100");
-    asm volatile("vsetc r11");
-}
 static inline void vldc(const int8_t* ptr){
     asm volatile("vldc %0[0]" :: "r" (ptr));
 }
 static inline void vlmaccr(const int8_t* ptr){
     asm volatile("vlmaccr %0[0]" :: "r" (ptr));
 }
-
-static inline void vlsat16(const int16_t* shift){
-    asm volatile("vlsat %0[0]" :: "r" (shift));
-}
 static inline void vstr(int8_t* ptr){
     asm volatile("vstr %0[0]" :: "r" (ptr));
-}
-static inline void vladd_16(int16_t* ptr){
-    asm volatile("vladd %0[0]" :: "r" (ptr));
 }
 static inline void vladd(const int8_t* ptr){
     asm volatile("vladd %0[0]" :: "r" (ptr));
 }
+static inline void vlsat(const int16_t* shift){
+    asm volatile("vlsat %0[0]" :: "r" (shift));
+}
+
+
+
+// VPU but not working properly version
+static
+void block_raw8_to_yuv422_new(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SIZE], unsigned img_width){
+    
+    const unsigned steps = 16;
+    const unsigned loop_size = ((img_width << 1) - 4);
+    const unsigned line_size = MODE_YUV2_MAX_SIZE;
+
+    int8_t vpu_vc[32] = {0};
+    int8_t res[32] = { 0 };
+
+    vpu_prepare_8();
+
+    for (unsigned x = 0; x <= (loop_size); x += steps) {
+        
+        // load block of 2x16 pixels
+        int8_t *src = (int8_t *)&input_rows[0][x];
+        block_2x16_vpu(vpu_vc, src, line_size); // warning uses R11
+        vldc(vpu_vc);
+
+        // kernel multiplication
+        #pragma clang loop unroll(full)
+        for (unsigned i = 0; i < 16; i++)
+        {
+            vlmaccr(kernels_group[i]);
+        }
+        vlsat(yuv_vsat);
+        vladd(yuv_adds);
+        vstr(res);
+
+        // xor to uint8
+        #pragma clang loop unroll(full)
+        for (unsigned i = 0; i < 16; i++)
+        {
+            out_ptr[x + i] = (res[i]) ^ 0x80;
+        }
+    }
+}
+
+void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned sensor_ln){
+    unsigned x1 = image->config->x1;
+    unsigned y1 = image->config->y1;
+    unsigned img_width = image->width;
+    unsigned img_channels = image->channels;
+    int8_t* data_src = data_in + x1;
+    int8_t* img_ptr = image->ptr;
+
+    // 2 rows of 400 pixels
+    static int8_t input_rows[2][MODE_YUV2_MAX_SIZE] ALIGNED_8 = { {0} };
+    unsigned buff_ln = sensor_ln % 2;
+    xmemcpy(&input_rows[buff_ln][0], data_src, img_width * 2);
+    if(buff_ln == 1) {
+        unsigned img_ln = (sensor_ln - y1 - 1) >> 1;
+        int8_t *out_ptr = img_ptr + ((img_ln * img_width)) * (img_channels);
+        block_raw8_to_yuv422_new(out_ptr, input_rows, img_width);
+    }
+}
+
+
+
+/*
 // slow C version, we can only afford half screen
 static
 void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SIZE], unsigned img_width){
@@ -115,64 +171,4 @@ void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SI
         out_ptr[x+3] = ((int8_t)V0) ^ 0x80;
     }
 }
-
-
-
-// VPU but not working properly version
-static
-void block_raw8_to_yuv422_new(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SIZE], unsigned img_width){
-    
-    const unsigned steps = 16;
-    const unsigned loop_size = ((img_width << 1) - 4);
-    const unsigned line_size = MODE_YUV2_MAX_SIZE;
-
-    int8_t vpu_vc[32] = {0};
-    int8_t res[32] = { 0 };
-
-    vpu_prepare_8();
-
-    for (unsigned x = 0; x <= (loop_size); x += steps) {
-        
-        // load block of 2x16 pixels
-        int8_t *src = (int8_t *)&input_rows[0][x];
-        block_2x16_vpu(vpu_vc, src, line_size); // warning uses R11
-        vldc(vpu_vc);
-
-        // kernel multiplication
-        #pragma clang loop unroll(full)
-        for (unsigned i = 0; i < 16; i++)
-        {
-            vlmaccr(kernels_group[i]);
-        }
-        vlsat16(yuv_vsat);
-        vladd(yuv_adds);
-        vstr(res);
-
-        // xor to uint8
-        #pragma clang loop unroll(full)
-        for (unsigned i = 0; i < 16; i++)
-        {
-            out_ptr[x + i] = (res[i]) ^ 0x80;
-        }
-    }
-}
-
-void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned sensor_ln){
-    unsigned x1 = image->config->x1;
-    unsigned y1 = image->config->y1;
-    unsigned img_width = image->width;
-    unsigned img_channels = image->channels;
-    int8_t* data_src = data_in + x1;
-    int8_t* img_ptr = image->ptr;
-
-    // 2 rows of 400 pixels
-    static int8_t input_rows[2][MODE_YUV2_MAX_SIZE] ALIGNED_8 = { {0} };
-    unsigned buff_ln = sensor_ln % 2;
-    xmemcpy(&input_rows[buff_ln][0], data_src, img_width * 2);
-    if(buff_ln == 1) {
-        unsigned img_ln = (sensor_ln - y1 - 1) >> 1;
-        int8_t *out_ptr = img_ptr + ((img_ln * img_width)) * (img_channels);
-        block_raw8_to_yuv422_new(out_ptr, input_rows, img_width);
-        //block_raw8_to_yuv422(out_ptr, input_rows, img_width);
-    }
-}
+*/
