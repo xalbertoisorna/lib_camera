@@ -55,8 +55,9 @@ static i2c_line_t imx219_common_regs[] = {
   {0x0103, 0x01},   /* software_reset       1, reset the chip */
   {SLEEP, TRSTUS},  /* software_reset       1, reset the chip */
 
-  {0x0100, 0x00},	/* Mode Select */
-
+  {0x0106, 0x01},   /* Fast standby */
+  {0x0100, 0x00},	  /* Mode Select  */
+  
   /* To Access Addresses 3000-5fff, send the following commands */
   {0x30eb, 0x0c},
   {0x30eb, 0x05},
@@ -116,6 +117,7 @@ static i2c_line_t start_regs[] = {
 };
 
 static i2c_line_t stop_regs[] = {
+  {0x0106, 0x01}, /* fast stanby before off */
   {0x0100, 0x00}, /* mode select streaming off */
 };
 
