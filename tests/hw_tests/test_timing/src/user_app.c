@@ -31,22 +31,7 @@ void save_image(image_cfg_t* image, char* filename) {
     camera_io_write_image_file(filename, img_ptr, image->height, image->width, image->channels); // this will close the file as well
 }
 
-void xscope_init_probes()
-{
-    // xscope init
-    xscope_int(SOF, -1);
-    xscope_int(EOF, -1);
-    xscope_int(RAW8, -1);
-    xscope_int(CAP, -1);
-    xscope_int(STA, -1);
-    xscope_int(STOP, -1);
-    xscope_int(PCKT, -1);
-}
-
 void user_app(chanend_t c_cam) {
-    // xscope init
-    xscope_init_probes();
-
     // Image and configuration
     const unsigned h = 200;
     const unsigned w = 200;

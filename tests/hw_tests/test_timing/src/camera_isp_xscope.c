@@ -134,16 +134,14 @@ void camera_isp_packet_handler(
   // Definitions
   const mipi_header_t header = pkt->header;
   const mipi_data_type_t data_type = MIPI_GET_DATA_TYPE(header);
-
+  unsigned word_count = MIPI_GET_WORD_COUNT(header);
+  xscope_int(WC, word_count);
+  
   // Wait for a clean frame
   /*
   if (ph_state.wait_for_frame_start
     && data_type != MIPI_DT_FRAME_START) return;
   */
-
-  // Timing
-  static uint32_t t_init=0;
-  static uint32_t t_end=0;
 
   // Data pointers calculation
   int8_t* data_in = (int8_t*)(&pkt->payload[0]);
@@ -183,12 +181,26 @@ void camera_isp_packet_handler(
 
 
 // -------- Main packet handler thread --------
+void xscope_init_probes()
+{
+  // xscope init
+  xscope_int(SOF, -1);
+  xscope_int(EOF, -1);
+  xscope_int(RAW8, -1);
+  xscope_int(PCKT, -1);
+  xscope_int(WC, -1);
+}
+
 
 void camera_isp_thread_xscope(
   streaming_chanend_t c_pkt,
   chanend_t c_ctrl,
-  chanend_t c_cam) {
+  chanend_t c_cam)
+{
+  // Initialize xscope probes
+  xscope_init_probes();
 
+  // Initialize the MIPI packet receiver
   mipi_packet_t ALIGNED_8 packet_buffer[MIPI_PKT_BUFFER_COUNT];
   mipi_packet_t* pkt;
   unsigned pkt_idx = 0;
