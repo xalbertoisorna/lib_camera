@@ -19,4 +19,5 @@
   <Probe name="CAP" type="CONTINUOUS" datatype="UINT" units="mV" enabled="true"/>
   <Probe name="STA" type="CONTINUOUS" datatype="UINT" units="mV" enabled="true"/>
   <Probe name="STOP" type="CONTINUOUS" datatype="UINT" units="mV" enabled="true"/>
+  <Probe name="PCKT" type="CONTINUOUS" datatype="UINT" units="mV" enabled="true"/>
 </xSCOPEconfig>

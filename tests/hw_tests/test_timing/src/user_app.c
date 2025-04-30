@@ -40,6 +40,7 @@ void xscope_init_probes()
     xscope_int(CAP, -1);
     xscope_int(STA, -1);
     xscope_int(STOP, -1);
+    xscope_int(PCKT, -1);
 }
 
 void user_app(chanend_t c_cam) {
@@ -68,21 +69,10 @@ void user_app(chanend_t c_cam) {
     };
 
     // wait a few seconds and ask somthing
-    delay_seconds_cpp(1);
-    
-    // From here, it could be a while loop
-    
-    // set coords and send to ISP
+    delay_milliseconds_cpp(300);
+
+    // compute the image coordinates
     camera_isp_coordinates_compute(&image);
-    camera_isp_start_capture_xscope(c_cam, &image);
-    camera_isp_get_capture_xscope(c_cam);
-    // save_image(&image, FILE1_NAME);
-    
-    // change coordinates
-    config.offset_x = 0.5;
-    config.offset_y = 0.1;
-    camera_isp_coordinates_compute(&image);
-    
     
     const uint32_t n_captures = 10;
     uint32_t t_start[n_captures];

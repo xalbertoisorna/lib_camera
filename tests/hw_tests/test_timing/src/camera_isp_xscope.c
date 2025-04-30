@@ -33,7 +33,7 @@ static struct {
   unsigned capture_finished;
   unsigned ae_value;
 } ph_state = {
-    1,  // wait_for_frame_start
+    0,  // wait_for_frame_start
     0,  // frame_number
     0,  // in_line_number
     0,  // out_line_number
@@ -69,10 +69,6 @@ void handle_no_expected_lines() {
 static
 void handle_post_process(image_cfg_t* image)
 {
-  // Image pointer could be NULL if EOF is reached before asking a picture
-  if (image->ptr == NULL) {
-    return;
-  }
 
 #if (CONFIG_APPLY_AWB)
   camera_isp_white_balance(image);
@@ -86,19 +82,6 @@ void handle_post_process(image_cfg_t* image)
 #endif
 }
 
-static
-void handle_end_of_frame(
-  image_cfg_t* image,
-  chanend_t c_cam)
-{
-  xscope_int(STOP, 0);
-  camera_sensor_stop();
-  if (image->ptr != NULL) {
-    ph_state.capture_finished = 1;
-    chan_out_byte(c_cam, 1);
-  }
-  xscope_int(STOP, 1);
-}
 
 static
 void handle_expected_lines(image_cfg_t* image, int8_t* data_in) {
@@ -153,8 +136,10 @@ void camera_isp_packet_handler(
   const mipi_data_type_t data_type = MIPI_GET_DATA_TYPE(header);
 
   // Wait for a clean frame
+  /*
   if (ph_state.wait_for_frame_start
     && data_type != MIPI_DT_FRAME_START) return;
+  */
 
   // Timing
   static uint32_t t_init=0;
@@ -167,10 +152,8 @@ void camera_isp_packet_handler(
   switch (data_type) {
     case MIPI_DT_FRAME_START:
       xscope_int(SOF, ph_state.frame_number);
-      t_init = get_reference_time();
       ph_state.wait_for_frame_start = 0;
       ph_state.in_line_number = 0;
-      ph_state.capture_finished = 0;
       ph_state.frame_number++;
       break;
 
@@ -182,11 +165,13 @@ void camera_isp_packet_handler(
       break;
 
     case MIPI_DT_FRAME_END:
+      xscope_int(EOF, ph_state.frame_number - 1);
       camera_sensor_stop();
-      xscope_int(EOF, ph_state.frame_number);
-      t_end = get_reference_time();
+      if (image_cfg->ptr == NULL) {
+        return;
+      }
       handle_post_process(image_cfg);
-      handle_end_of_frame(image_cfg, c_isp_to_user);
+      chan_out_byte(c_isp_to_user, 1);
       break;
 
     default:
@@ -214,13 +199,13 @@ void camera_isp_thread_xscope(
 
   // Sensor configuration
   camera_sensor_init();
+  //camera_sensor_start();
 
   // Wait for the sensor to start
-  delay_milliseconds_cpp(600);
+  delay_milliseconds_cpp(500);
 
   // Give the MIPI packet receiver a first buffer
   s_chan_out_word(c_pkt, (unsigned)&packet_buffer[pkt_idx]);
-
 
   SELECT_RES(
     CASE_THEN(c_pkt, on_c_pkt_change),
@@ -228,6 +213,7 @@ void camera_isp_thread_xscope(
   on_c_pkt_change: { // attending mipi_packet_rx
     pkt = (mipi_packet_t*)s_chan_in_word(c_pkt);
     pkt_idx = (pkt_idx + 1) & (MIPI_PKT_BUFFER_COUNT - 1);
+    xscope_int(PCKT, pkt_idx);
     s_chan_out_word(c_pkt, (unsigned)&packet_buffer[pkt_idx]);
     camera_isp_packet_handler(pkt, &image, c_cam);
     continue;
@@ -236,9 +222,7 @@ void camera_isp_thread_xscope(
     // user petition
     chan_in_buf_byte(c_cam, (uint8_t*)&image, sizeof(image_cfg_t)); // recieve info from user
     // Start camera
-    xscope_int(STA, 0);
     camera_sensor_start();
-    xscope_int(STA, 1);
     continue;
     }
   }

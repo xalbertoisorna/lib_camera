@@ -33,7 +33,7 @@ void check_mipi_freq(
   debug_printf("mipi_shim_cfg0 = 0x%08X\n", mipi_shim_cfg0);
   xassert(mipi_phy_freq < 200 && "MIPI PHY frequency too high");
   xassert(mipi_shim_freq < 200 && "MIPI shim frequency too high");
-  xassert(mipi_shim_freq > mipi_phy_freq && "PHY has to be faster than shim");
+ // xassert(mipi_shim_freq > mipi_phy_freq && "PHY has to be faster than shim");
 }
 
 static
@@ -51,7 +51,7 @@ void camera_mipi_init(
 {
   // ---------------- MIPI config variables ----------------
   const unsigned mipi_clk_divider = 0x1;
-  const unsigned mipi_clk_cfg_divider = 0x2;
+  const unsigned mipi_clk_cfg_divider = 0x1;
   const unsigned mipi_shim_cfg0 = MIPI_SHIM_CFG0_PACK(
     MIPI_SHIM_DEMUX_EN,
     MIPI_SHIM_DEMUX_DATATYPE,

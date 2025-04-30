@@ -24,6 +24,7 @@ set(
     -fxscope
     -DDEBUG_PRINT_ENABLE_CAM_ISP=1  # ISP debug prints
     -DDEBUG_PRINT_ENABLE_CAM_MIPI=1 # MIPI debug prints
+    -DCONFIG_APPLY_AE=0 # Disable AE for this test
 )
 
 XMOS_REGISTER_APP()
