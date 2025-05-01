@@ -24,7 +24,7 @@
 #endif
 
 #ifndef CONFIG_APPLY_AE
-#define CONFIG_APPLY_AE             (1)
+#define CONFIG_APPLY_AE             (0)
 #endif
 
 
