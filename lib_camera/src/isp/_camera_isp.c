@@ -68,6 +68,9 @@ void camera_isp_get_capture(chanend_t c_cam) {
   chan_in_byte(c_cam);
 }
 
+unsigned camera_isp_get_state_finished(){
+  return ph_state.capture_finished;
+}
 
 // -------- State handlers --------
 
@@ -264,6 +267,7 @@ void camera_isp_packet_handler(
       t_end = get_reference_time();
       debug_printf("Frame time: %d cycles\n", t_end - t_init);
       handle_post_process(image_cfg);
+      ph_state.capture_finished = 1;
       handle_end_of_frame(image_cfg, c_isp_to_user);
       break;
 

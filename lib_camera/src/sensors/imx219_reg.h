@@ -35,7 +35,7 @@
 
 // Gain params
 #define GAIN_MIN_DB          0
-#define GAIN_DEFAULT_DB     40
+#define GAIN_DEFAULT_DB     64
 #define GAIN_MAX_DB         84
 
 // Test pattern registers
@@ -93,8 +93,8 @@ static i2c_line_t imx219_common_regs[] = {
   {0x479b, 0x0e},
 
   /* Frame Bank Register Group "A" */
-  {0x0160, 0x04}, /* Frame_Length_A */
-  {0x0161, 0x00},
+  {0x0160, 0x03}, /* Frame_Length_A */
+  {0x0161, 0x20},
   {0x0162, 0x0d},	/* Line_Length_A */
   {0x0163, 0x78},
   {0x0170, 0x01}, /* X_ODD_INC_A */

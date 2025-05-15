@@ -111,6 +111,13 @@ void camera_isp_thread(
   chanend_t c_cam);
 
 
+/**
+ * @brief Gets ph_status.capture_finished value.
+ * 
+ * @return unsigned returns 1 if the image is ready, 0 otherwise.
+ */
+unsigned camera_isp_get_state_finished();
+
 // ---------------------------- Coordinates -------------------------------
 
 /**
