@@ -1,6 +1,11 @@
 // Copyright 2023-2025 XMOS LIMITED.
 // This Software is subject to the terms of the XMOS Public Licence: Version 1.
 
+/**
+ * @defgroup camera_sensors Camera Sensor Base API
+ * @brief Functions and classes to control camera sensors
+ */
+
 #pragma once
 
 #include <stdint.h>
@@ -16,18 +21,24 @@ extern "C" {
 
 namespace sensor {
 
+/// @brief I2C line structure
+/// @ingroup camera_sensors
 typedef struct
 {
   uint16_t reg_addr;
   uint16_t reg_val;
 } i2c_line_t;
 
+/// @brief I2C table structure
+/// @ingroup camera_sensors
 typedef struct
 {
   i2c_line_t * table;
   size_t num_lines;
 } i2c_table_t;
 
+/// @brief I2C configuration structure
+/// @ingroup camera_sensors
 typedef struct 
 {
   uint8_t  device_addr;
@@ -41,7 +52,8 @@ typedef struct
 #define GET_TABLE(regs_arr) (i2c_table_t){regs_arr, GET_NUM_LINES(regs_arr)}
 
 /**
- *  @brief Base class for implementing Sensor control from
+ * @ingroup camera_sensors
+ * @brief Base class for camera sensors.
  */
 class SensorBase {
 
@@ -63,9 +75,9 @@ class SensorBase {
      * @brief Read from a 16-bit register
      *
      * @param reg         Register to read from
-     * @returns           Register value
+     * @returns           Register value, -1 if failed
      */
-    uint16_t i2c_read(uint16_t reg);
+    int i2c_read(uint16_t reg);
 
     /**
      * @brief Write to a single register
@@ -153,6 +165,14 @@ class SensorBase {
      * @note This is a virtual function, and will have to be implemented in the derived class
      */
     virtual int set_test_pattern(uint16_t pattern);
+
+    /**
+     * @brief Check if sensor is connected
+     * 
+     * @returns           0 if succeeded, -1 if failed
+     * @note This is a virtual function, and will have to be implemented in the derived class
+     */
+    virtual int check_sensor_is_connected();
 
 }; // SensorBase
 

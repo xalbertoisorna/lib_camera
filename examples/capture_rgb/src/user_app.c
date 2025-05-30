@@ -60,11 +60,9 @@ void user_app(chanend_t c_cam, chanend_t c_usb) {
         .c_usb = c_usb,
     };
 
-    // wait a few seconds and ask somthing
+    // wait a few seconds and ask something
     delay_seconds_cpp(3);
-    
-    // From here, it could be a while loop
-    
+
     // set coords and send to ISP
     camera_isp_coordinates_compute(&image);
     
@@ -74,13 +72,11 @@ void user_app(chanend_t c_cam, chanend_t c_usb) {
     unsigned t1 = get_reference_time();
     printf("Capture total time: %u [ticks]\n", (t1 - t0));
 
-    t0 = get_reference_time();
-    camera_isp_start_capture(c_cam, &image);
-    camera_isp_get_capture(c_cam);
-    t1 = get_reference_time();
-    printf("Capture total time: %u [ticks]\n", (t1 - t0));
-
-    // camera_int8_to_uint8((uint8_t*)image.ptr, image.ptr, image.size);
-    save_image(&image, FILE1_NAME);
+    /* (Optional) try something out of bounds
+    config.offset_x = 1.8; 
+    config.offset_y = 1.8; 
+    camera_isp_coordinates_compute(&image);
+    camera_isp_coordinates_print(&image);
+    */
     exit(0);
 }

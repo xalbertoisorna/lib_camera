@@ -18,16 +18,20 @@
 #include "camera_isp.h"
 
 DECLARE_JOB(camera_mipi_rx, (in_buffered_port_32_t, port_t, streaming_chanend_t, streaming_chanend_t));
-DECLARE_JOB(camera_isp_thread, (streaming_chanend_t, streaming_chanend_t, chanend_t));
+DECLARE_JOB(camera_isp_thread_xscope, (streaming_chanend_t, streaming_chanend_t, chanend_t));
 
-// defined in: camera_mipi_rx.S
 extern void camera_mipi_rx(
     in_buffered_port_32_t p_mipi_rxd,
     port_t p_mipi_rxa,
     streaming_chanend_t c_pkt,
     chanend_t c_ctrl);
 
-void camera_main(chanend_t c_cam){
+extern void camera_isp_thread_xscope(
+    streaming_chanend_t c_pkt,
+    streaming_chanend_t c_ctrl,
+    chanend_t c_cam);
+
+void camera_main_xscope(chanend_t c_cam){
 
     // Channels
     streaming_channel_t c_pkt = s_chan_alloc();
@@ -45,8 +49,8 @@ void camera_main(chanend_t c_cam){
 
     // Parallel Jobs
     PAR_JOBS(
-        PJOB(camera_mipi_rx, (ctx.p_mipi_rxd, ctx.p_mipi_rxa, c_pkt.end_a, c_ctrl.end_a)),
-        PJOB(camera_isp_thread,(c_pkt.end_b, c_ctrl.end_b, c_cam))
+        PJOB(camera_mipi_rx, (ctx.p_mipi_rxd, ctx.p_mipi_rxa, c_pkt.end_a, c_ctrl.end_a)), // camera_mipi_rx.S
+        PJOB(camera_isp_thread_xscope,(c_pkt.end_b, c_ctrl.end_b, c_cam))
     );
 
     s_chan_free(c_pkt);
