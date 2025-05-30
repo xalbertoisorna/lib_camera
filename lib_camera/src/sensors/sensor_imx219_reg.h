@@ -32,14 +32,14 @@
 
 // PLL settings
 #define PLL_VT_MPY          0x0032  // pll1 - pix clk
-#define PLL_OP_MPY          0x0040  // pll2 - mipi clk
+#define PLL_OP_MPY          0x0048  // pll2 - mipi clk
 
 // if PLL1 < PLL2 data always correct
 // if PLL1 > PLL2 FIFO could handle
 
 // Gain params
 #define GAIN_MIN_DB          0
-#define GAIN_DEFAULT_DB     35  
+#define GAIN_DEFAULT_DB     40  
 #define GAIN_MAX_DB         84
 
 // Test pattern registers
@@ -64,7 +64,9 @@ static i2c_line_t imx219_common_regs[] = {
   {0x0103, 0x01},   /* software_reset       1, reset the chip */
   {SLEEP, TRSTUS},  /* software_reset       1, reset the chip */
 
-  {0x0100, 0x00},	/* Mode Select */
+  {0x0106, 0x01},   /* Fast standby */
+  {0x0100, 0x00},	  /* Mode Select  */
+  {0x0152, 0x01},   // frame bank fast
 
   /* To Access Addresses 3000-5fff, send the following commands */
   {0x30eb, 0x0c},
@@ -76,18 +78,14 @@ static i2c_line_t imx219_common_regs[] = {
 
   /* PLL Clock Table */
   { 0x812A, 0x1800 }, /* EXCK_FREQ          24.00, for 24 Mhz */
-  { 0x0304, 0x02 }, /* PREPLLCK_VT_DIV      2, for pre divide by 2 */
-  { 0x0305, 0x02 }, /* PREPLLCK_OP_DIV      2, for pre divide by 2 */
+  { 0x0304, 0x03 }, /* PREPLLCK_VT_DIV      2, for pre divide by 2 */
+  { 0x0305, 0x03 }, /* PREPLLCK_OP_DIV      2, for pre divide by 2 */
   { 0x8306, PLL_VT_MPY}, /* PLL_VT_MPY      0x27, for multiply by 39, pixclk=187.2 MHz */
   { 0x830C, PLL_OP_MPY}, /* PLL_OP_MPY      0x40, for multiply by 64, MIPI clk=768 MHz */
-  { 0x0301, 0x0A }, /* VTPXCK_DIV           5, ? */
+  { 0x0301, 0x08 }, /* VTPXCK_DIV           5, ? */
   { 0x0303, 0x01 }, /* VTSYCK_DIV           1, ? */
-  { 0x0309, 0x0A }, /* OPPXCK_DIV           8, has to match RAW8 if you have raw8*/
+  { 0x0309, 0x08 }, /* OPPXCK_DIV           8, has to match RAW8 if you have raw8*/
   { 0x030B, 0x01 }, /* OPSYCK_DIV           1, has to be 1? */
-  
-  // pck clock
-  {0x1148, 0x00},    
-  {0x1149, 0xF0},
 
   /* Undocumented registers */
   {0x455e, 0x00},
@@ -104,6 +102,8 @@ static i2c_line_t imx219_common_regs[] = {
   {0x479b, 0x0e},
 
   /* Frame Bank Register Group "A" */
+  {0x0160, 0x03}, /* Frame_Length_A */
+  {0x0161, 0x20},
   {0x0162, 0x0d},	/* Line_Length_A */
   {0x0163, 0x78},
   {0x0170, 0x01}, /* X_ODD_INC_A */
@@ -115,6 +115,7 @@ static i2c_line_t imx219_common_regs[] = {
   {0x012a, 0x18},	/* EXCK_Freq */
   {0x012b, 0x00},
 };
+
 
 
 static i2c_line_t imx219_lanes_regs[] = {

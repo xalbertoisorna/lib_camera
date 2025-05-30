@@ -106,17 +106,14 @@ void handle_end_of_frame(
   // stop the sensor
   camera_sensor_stop();
 
-  // perform post-processing
-  if (image->ptr == NULL) {
-    return;
-  }
-
+  // apply AWB if enabled
 #if (CONFIG_APPLY_AWB)
   if (image->config->mode != MODE_YUV2) {
     camera_isp_white_balance(image);
   }
 #endif
 
+  // apply AE if enabled
 #if (CONFIG_APPLY_AE)
   ph_state.ae_value = camera_isp_auto_exposure(image);
   if (ph_state.ae_value) {
@@ -125,9 +122,11 @@ void handle_end_of_frame(
 #endif
 
   // signal image ready
-  ph_state.capture_finished = 1;
-  chan_out_byte(c_cam, 1);
-  
+  if (image->ptr != NULL) {
+    ph_state.capture_finished = 1;
+    chan_out_byte(c_cam, 1);
+  }
+
 }
 
 static
