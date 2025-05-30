@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.21)
 include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
-project(capture_rgb)
+project(capture_yuv)
 
 # Sandbox configuration
-set(XMOS_SANDBOX_DIR ${CMAKE_CURRENT_LIST_DIR}/../../..)
+set(XMOS_SANDBOX_DIR ${CMAKE_CURRENT_LIST_DIR}/../../../..)
 message("XMOS_SANDBOX_DIR: ${XMOS_SANDBOX_DIR}")
 
 # Target, xscope
@@ -21,10 +21,10 @@ set(
     -g
     -report
     -Wall
-    -Werror
     -fxscope
     -DDEBUG_PRINT_ENABLE_CAM_ISP=1  # ISP debug prints
     -DDEBUG_PRINT_ENABLE_CAM_MIPI=1 # MIPI debug prints
+    -DDEBUG_PRINT_ENABLE_CAM_ISP_AE=1 # ISP AE debug prints
 )
 
 XMOS_REGISTER_APP()

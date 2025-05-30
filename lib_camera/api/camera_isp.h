@@ -33,7 +33,8 @@ typedef enum {
   MODE_RAW  = 0,   ///< Unprocessed RAW sensor data
   MODE_RGB1 = 1,   ///< RGB mode with no downsample (demosaicing)
   MODE_RGB2 = 2,   ///< RGB mode with x2 downsample
-  MODE_RGB4 = 4    ///< RGB mode with x4 downsample
+  MODE_RGB4 = 4,   ///< RGB mode with x4 downsample
+  MODE_YUV2 = 6,   ///< YUV2 mode (YUV422)
 } camera_mode_t;
 
 /// @brief Configuration structure for the camera.

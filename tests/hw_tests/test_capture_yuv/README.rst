@@ -2,7 +2,7 @@ Example: Capture RGB
 ====================
 
 This example runs intermetly a sequence of start-capture-stop. 
-It prints in the console every time it recieves a:
+It prints in the console every time it receives a:
 
 - start of frame
 - expected packet
@@ -22,6 +22,6 @@ Run the following command from the current folder:
     cmake -G "Ninja" -B build
     ninja -C build
     # Run 
-    xrun --xscope bin/capture_rgb.xe
+    xrun --xscope bin/capture_yuv.xe
     # Decode Image
-    python decode.py
+    python yuv.py

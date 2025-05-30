@@ -63,7 +63,7 @@ typedef struct {
 // -------- Image API -------------------
 void camera_isp_prepare_capture(chanend_t c_cam, image_cfg_t* image)
 {
-  const unsigned max_steps = 20;
+  const unsigned max_steps = 60;
   for (unsigned i = 0; i < max_steps; i++) {
     camera_isp_start_capture(c_cam, image);
     camera_isp_get_capture(c_cam);
@@ -98,40 +98,36 @@ void handle_no_expected_lines() {
   }
 }
 
-static void handle_post_process(image_cfg_t *image)
+static
+void handle_end_of_frame(
+  image_cfg_t* image,
+  chanend_t c_cam)
 {
-  // Image pointer could be NULL if EOF is reached before asking a picture
-  if (image->ptr == NULL)
-  {
+  // stop the sensor
+  camera_sensor_stop();
+
+  // perform post-processing
+  if (image->ptr == NULL) {
     return;
   }
 
 #if (CONFIG_APPLY_AWB)
-  if (image->config->mode != MODE_YUV2)
-  {
+  if (image->config->mode != MODE_YUV2) {
     camera_isp_white_balance(image);
   }
 #endif
 
 #if (CONFIG_APPLY_AE)
   ph_state.ae_value = camera_isp_auto_exposure(image);
-  if (ph_state.ae_value)
-  {
+  if (ph_state.ae_value) {
     camera_sensor_set_exposure(ph_state.ae_value);
   }
 #endif
-}
 
-static
-void handle_end_of_frame(
-  image_cfg_t* image,
-  chanend_t c_cam)
-{
-  camera_sensor_stop();
-  if (image->ptr != NULL) {
-    ph_state.capture_finished = 1;
-    chan_out_byte(c_cam, 1);
-  }
+  // signal image ready
+  ph_state.capture_finished = 1;
+  chan_out_byte(c_cam, 1);
+  
 }
 
 static
@@ -267,10 +263,6 @@ void camera_isp_packet_handler(
   if (ph_state.wait_for_frame_start
     && data_type != MIPI_DT_FRAME_START) return;
 
-  // Timing
-  static uint32_t t_init=0;
-  static uint32_t t_end=0;
-
   // Data pointers calculation
   int8_t* data_in = (int8_t*)(&pkt->payload[0]);
 
@@ -278,7 +270,6 @@ void camera_isp_packet_handler(
   // Handle packets depending on their type
   switch (data_type) {
     case MIPI_DT_FRAME_START:
-      t_init = get_reference_time();
       ph_state.wait_for_frame_start = 0;
       ph_state.in_line_number = 0;
       ph_state.capture_finished = 0;
@@ -292,9 +283,6 @@ void camera_isp_packet_handler(
       break;
 
     case MIPI_DT_FRAME_END:
-      t_end = get_reference_time();
-      //debug_printf("Frame time: %d cycles\n", t_end - t_init);
-      handle_post_process(image_cfg);
       handle_end_of_frame(image_cfg, c_isp_to_user);
       break;
 

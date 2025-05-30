@@ -10,13 +10,18 @@
 
 #include "camera_isp.h"
 
+// debug options
+// (can be enabled via: -DDEBUG_PRINT_ENABLE_CAM_ISP_AE=1)
+#define DEBUG_UNIT CAM_ISP_AE 
+#include <debug_print.h>
+
 #define HIST_BIN_COUNT      (64)
 #define HIST_QUANT_BITS     (2)
 
 #define AE_MARGIN           (0.1)     // default marging for the auto exposure error
 #define AE_INIT_EXPOSURE    (35)      // initial exposure value
-#define AE_MIN_EXPOSURE     (35)       // minimum value for exposure
-#define AE_MAX_EXPOSURE     (55)      // maximum value for exposure
+#define AE_MIN_EXPOSURE     (1)       // minimum value for exposure
+#define AE_MAX_EXPOSURE     (80)      // maximum value for exposure
 #define AE_DONE             (0)       // done flag for auto exposure
 
 typedef enum {
@@ -141,12 +146,9 @@ float stats_compute_mean_skewness(statistics_t* stats)
     return mean;
 }
 
-static inline
-int32_t csign(float x)
-{
-    int32_t s, e; // sign, exp
-    asm volatile("fsexp %0, %1, %2" : "=r"(s),  "=r"(e) : "r"(x));
-    return s;
+static 
+int8_t csign(float x) {
+  return (x > 0) - (x < 0);
 }
 
 static
@@ -155,9 +157,9 @@ uint8_t AE_compute_new_exposure(float exposure, float skewness)
     static float a = AE_MIN_EXPOSURE;     // minimum value for exposure
     static float b = AE_MAX_EXPOSURE;    // maximum value for exposure
     static float fa = -1.0;   // minimimum skewness
-    static float fb = 1.0;    // minimum skewness
-    static int count = 0;
-    float c = exposure;
+    static float fb = 1.0;    // maximum skewness
+    // static int count = 0;
+    float c = (float)exposure;
     float fc = skewness;
 
     if (csign(fc) == csign(fa)) {
@@ -167,15 +169,6 @@ uint8_t AE_compute_new_exposure(float exposure, float skewness)
         b = c; fb = fc;
     }
     c = b - fb * ((b - a) / (fb - fa));
-
-    // each X samples, restart AE algorithm
-    if (count < 5) {
-        count = count + 1;
-    }
-    else {
-        // restart auto exposure
-        count = 0; a = 0; fa = -1; b = 80; fb = 1;
-    }
     return c;
 }
 
@@ -195,6 +188,7 @@ uint8_t AE_compute_exposure(
 
     // Compute skewness
     float sk = stats_compute_mean_skewness(global_stats);
+    debug_printf("AE: skewness (100): %d, exposure: %d\n", (int)(100*sk), new_exp);
 
     // Compute new exposure
     if (AE_is_adjusted(sk)) {
@@ -202,10 +196,11 @@ uint8_t AE_compute_exposure(
     }
     else {
         new_exp = AE_compute_new_exposure((float)new_exp, sk); // new_exp is in [1, 80]
-        if (new_exp > 70) { // Skip AE control if too dark
+        if (new_exp > AE_MAX_EXPOSURE) { // Skip AE control if too dark
             skip_ae_control++;
-            if (skip_ae_control > 20) {
+            if (skip_ae_control > 5) {
                 skip_ae_control = 0;
+                debug_printf("\nskipping AE control, too dark\n");
                 return AE_DONE;
             }
         }
@@ -226,11 +221,10 @@ void stats_compute_hist_channel(
     int16_t val = 0;
     for (uint32_t k = channel; k < img_size; k+=channels) {
         val = pix[k];
-        if (channels == 2)
+        if (channels == 3)
         {
-            val = val ^ 0x0080; // convert back to int8_t
+            val += 128; // convert from int8_t to uint8_t
         }
-        val += 128; // convert from int8_t to uint8_t
         val >>= HIST_QUANT_BITS;
         hist->bins[val]++;
     }
@@ -274,30 +268,32 @@ void stats_compute_histograms(
     }
 }
 
-uint8_t camera_isp_auto_exposure(image_cfg_t* image)
+static
+void stats_reset(
+    histograms_t* histograms,
+    statistics_t* stats)
 {
-    static histograms_t histograms;
-    static statistics_t statistics;
+    memset(histograms, 0, sizeof(histograms_t));
+    memset(stats, 0, sizeof(statistics_t));
+}
+
+uint8_t camera_isp_auto_exposure(image_cfg_t* image)
+{   
+    float inv_img_size = (1.0f) / (image->width * image->height);
     static uint8_t ae_value = 1;
-    static unsigned restart_ae = 100; // restart AE algorithm
-
-    if (restart_ae){
-        restart_ae--;
-        if (restart_ae == 0) {
-            ae_value = AE_INIT_EXPOSURE;
-            restart_ae = 100;
-        }
-    }
-
     if (ae_value == AE_DONE) {
         return AE_DONE;
     }
+
+    // init histograms and statistics
+    histograms_t histograms;
+    statistics_t statistics;
+    stats_reset(&histograms, &statistics);
 
     // compute histograms
     stats_compute_histograms(&histograms, image);
 
     // compute statistics
-    const float inv_img_size = 1.0f / (image->width * image->height);
     stats_compute_stats(&statistics, &histograms, inv_img_size);
 
     // compute auto exposure
