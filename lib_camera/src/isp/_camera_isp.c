@@ -63,13 +63,12 @@ typedef struct {
 // -------- Image API -------------------
 void camera_isp_prepare_capture(chanend_t c_cam, image_cfg_t* image)
 {
-  const unsigned max_steps = 60;
+  const unsigned max_steps = 10;
   for (unsigned i = 0; i < max_steps; i++) {
     camera_isp_start_capture(c_cam, image);
+    delay_milliseconds_cpp(1);
     camera_isp_get_capture(c_cam);
-    if (!ph_state.ae_value) {
-      break;
-    }
+    delay_milliseconds_cpp(1);
   }
 }
  
@@ -105,6 +104,9 @@ void handle_end_of_frame(
 {
   // stop the sensor
   camera_sensor_stop();
+  if (image->ptr == NULL){
+    return; // no image to process
+  }
 
   // apply AWB if enabled
 #if (CONFIG_APPLY_AWB)
@@ -122,11 +124,9 @@ void handle_end_of_frame(
 #endif
 
   // signal image ready
-  if (image->ptr != NULL) {
-    ph_state.capture_finished = 1;
-    chan_out_byte(c_cam, 1);
-  }
-
+  ph_state.capture_finished = 1;
+  chan_out_byte(c_cam, 1);
+  
 }
 
 static

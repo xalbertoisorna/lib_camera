@@ -10,6 +10,6 @@
 #define ALIGNED_4 __attribute__((aligned(4)))
 #endif
 
-extern const int8_t *yuv_kernels[16];
-extern const int8_t yuv_vadds[32];
-extern const int16_t yuv_vsats[16];
+extern const int8_t kernels_yuv422[16*32];
+extern const int16_t kernels_yuv422_sat[16];
+extern const int8_t kernels_yuv422_adds[32];

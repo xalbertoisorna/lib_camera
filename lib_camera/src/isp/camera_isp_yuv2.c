@@ -15,117 +15,37 @@
 
 #include "kernels_yuv.h"
 
-#define CLAMP(x) ((x < INT8_MIN) ? INT8_MIN : (x > INT8_MAX) ? INT8_MAX : x)
-
-
-static inline
-void vldr16(
-    const uint32_t mask,
-    uint32_t *in,
-    uint32_t *out)
-{
-    register int32_t *ptr asm("r11") = (int32_t *)in;
-    asm volatile("vldr %0[0]" :: "r" (ptr));
-    asm volatile("vstrpv %0[0], %1" ::"r"(out), "r"(mask));
-}
-static inline 
-void block_2x16_vpu(
-    int8_t dst[32],
+extern void raw8_block_to_yuv422(
+    int8_t *dst,
     int8_t *src,
-    unsigned line_size)
-{
-    const uint32_t mask = (1 << 16) - 1;
-    vldr16(mask, (uint32_t *)src, (uint32_t *)dst);
-    vldr16(mask, (uint32_t *)(src + line_size), (uint32_t *)(dst + 16));
-    asm volatile("vclrdr");
-}
-static inline void vpu_prepare_8(){
-    asm volatile("vclrdr");
-    asm volatile("ldc r11, 0x200");
-    asm volatile("vsetc r11");
-}
-static inline void vldc(const int8_t* ptr){
-    asm volatile("vldc %0[0]" :: "r" (ptr));
-}
-static inline void vlmaccr(const int8_t* ptr){
-    asm volatile("vlmaccr %0[0]" :: "r" (ptr));
-}
-static inline void vstr(int8_t* ptr){
-    asm volatile("vstr %0[0]" :: "r" (ptr));
-}
-static inline void vladd(const int8_t* ptr){
-    asm volatile("vladd %0[0]" :: "r" (ptr));
-}
-static inline void vlsat(const int16_t* shift){
-    asm volatile("vlsat %0[0]" :: "r" (shift));
-}
+    unsigned line_size
+);
 
-
-
-// VPU but not working properly version
 static
-void block_raw8_to_yuv422_new(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SIZE], unsigned img_width){
+void block_raw8_to_yuv422_vpu(
+    int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SIZE], 
+    unsigned img_width){
     
     const unsigned steps = 16;
     const unsigned loop_size = ((img_width << 1) - 4);
     const unsigned line_size = MODE_YUV2_MAX_SIZE;
 
-    int8_t vpu_vc[32] = {0};
-    int8_t res[32] = { 0 };
-
-    vpu_prepare_8();
-
     for (unsigned x = 0; x <= (loop_size); x += steps) {
-        
-        // load block of 2x16 pixels
+        // load block of 2x16 pixels and convert to YUV422
         int8_t *src = (int8_t *)&input_rows[0][x];
-        block_2x16_vpu(vpu_vc, src, line_size); // warning uses R11
-        vldc(vpu_vc);
-
-        // kernel multiplication
-        #pragma clang loop unroll(full)
-        for (unsigned i = 0; i < 16; i++)
-        {
-            vlmaccr(yuv_kernels[i]);
-        }
-        vlsat(yuv_vsats);
-        vladd(yuv_vadds);
-        vstr(res);
-
-        // xor to uint8
-        #pragma clang loop unroll(full)
-        for (unsigned i = 0; i < 16; i++)
-        {
-            out_ptr[x + i] = (res[i]) ^ 0x80;
-        }
-    }
-}
-
-void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned sensor_ln){
-    unsigned x1 = image->config->x1;
-    unsigned y1 = image->config->y1;
-    unsigned img_width = image->width;
-    unsigned img_channels = image->channels;
-    int8_t* data_src = data_in + x1;
-    int8_t* img_ptr = image->ptr;
-
-    // 2 rows of 400 pixels
-    static int8_t input_rows[2][MODE_YUV2_MAX_SIZE] ALIGNED_8 = { {0} };
-    unsigned buff_ln = sensor_ln % 2;
-    xmemcpy(&input_rows[buff_ln][0], data_src, img_width * 2);
-    if(buff_ln == 1) {
-        unsigned img_ln = (sensor_ln - y1 - 1) >> 1;
-        int8_t *out_ptr = img_ptr + ((img_ln * img_width)) * (img_channels);
-        block_raw8_to_yuv422_new(out_ptr, input_rows, img_width);
+        int8_t *dst = &out_ptr[x];
+        raw8_block_to_yuv422(dst, src, line_size);
     }
 }
 
 
-
-/*
 // slow C version, we can only afford half screen
+#define CLAMP(x) ((x < INT8_MIN) ? INT8_MIN : (x > INT8_MAX) ? INT8_MAX : x)
+
 static
-void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SIZE], unsigned img_width){
+void block_raw8_to_yuv422_c(
+    int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SIZE], 
+    unsigned img_width){
     
     // YUV (BT.601) fixed point coeffs
     // const int Y_coeff[3] = {66, 129, 25};
@@ -141,7 +61,6 @@ void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SI
     const int gi_rem = 6956; //g*84 + i*84;
     const unsigned steps = 4;
     unsigned loop_size = ((img_width << 1) - 4);
-    loop_size = loop_size >> 1;
     
     for (unsigned x = 0; x <= loop_size; x += steps) {
         // Load 2 RAW pixels
@@ -171,4 +90,25 @@ void block_raw8_to_yuv422(int8_t *out_ptr, int8_t input_rows[2][MODE_YUV2_MAX_SI
         out_ptr[x+3] = ((int8_t)V0) ^ 0x80;
     }
 }
-*/
+
+
+void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned sensor_ln){
+    unsigned x1 = image->config->x1;
+    unsigned y1 = image->config->y1;
+    unsigned img_width = image->width;
+    unsigned img_channels = image->channels;
+    int8_t* data_src = data_in + x1;
+    int8_t* img_ptr = image->ptr;
+
+    // 2 rows of 400 pixels
+    static int8_t input_rows[2][MODE_YUV2_MAX_SIZE] ALIGNED_8 = { {0} };
+    unsigned buff_ln = sensor_ln % 2;
+    xmemcpy(&input_rows[buff_ln][0], data_src, img_width * 2);
+    if(buff_ln == 1) {
+        unsigned img_ln = (sensor_ln - y1 - 1) >> 1;
+        int8_t *out_ptr = img_ptr + ((img_ln * img_width)) * (img_channels);
+        block_raw8_to_yuv422_vpu(out_ptr, input_rows, img_width);
+        //block_raw8_to_yuv422_c(out_ptr, input_rows, img_width);
+        printf("line %u\n", img_ln);
+    }
+}

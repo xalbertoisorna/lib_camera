@@ -37,7 +37,7 @@ void user_app(chanend_t c_cam) {
     const unsigned w = 192;
     const unsigned ch = 2;
     const unsigned img_size = h * w * ch;
-    int8_t image_buffer[img_size] = { 0 };
+    int8_t image_buffer[img_size] ALIGNED_4 = { 0 };
 
     camera_cfg_t config = {
         .offset_x = 0,
@@ -54,12 +54,12 @@ void user_app(chanend_t c_cam) {
     };
 
     // wait a few seconds and ask something
-    delay_seconds_cpp(3);
+    delay_seconds_cpp(1);
 
     // set coords and send to ISP
     camera_isp_coordinates_compute(&image);
     camera_isp_prepare_capture(c_cam, &image);
-    
+
     unsigned t0 = get_reference_time();
     camera_isp_start_capture(c_cam, &image);
     camera_isp_get_capture(c_cam);

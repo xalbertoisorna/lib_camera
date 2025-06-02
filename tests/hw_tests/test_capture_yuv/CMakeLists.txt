@@ -24,7 +24,10 @@ set(
     -fxscope
     -DDEBUG_PRINT_ENABLE_CAM_ISP=1  # ISP debug prints
     -DDEBUG_PRINT_ENABLE_CAM_MIPI=1 # MIPI debug prints
-    -DDEBUG_PRINT_ENABLE_CAM_ISP_AE=1 # ISP AE debug prints
+    -DDEBUG_PRINT_ENABLE_CAM_ISP_AE=0 # ISP AE debug prints
+    -DCONFIG_APPLY_AWB=0 # Apply AWB configuration
+    -DLIBXCORE_XASSERT_IS_ASSERT=0 
+    -mcmodel=large
 )
 
 XMOS_REGISTER_APP()

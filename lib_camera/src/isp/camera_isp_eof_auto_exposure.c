@@ -9,6 +9,7 @@
 #include <xcore/assert.h>
 
 #include "camera_isp.h"
+#include "camera_utils.h"
 
 // debug options
 // (can be enabled via: -DDEBUG_PRINT_ENABLE_CAM_ISP_AE=1)
@@ -213,13 +214,14 @@ static
 void stats_compute_hist_channel(
     channel_histogram_t* hist,
     image_cfg_t* image,
-    channel_order_t channel)
+    channel_order_t ch)
 {
-    const uint8_t channels = image->channels;
-    const uint32_t img_size = image->size;
-    const int8_t* pix = (int8_t*)image->ptr;
+    unsigned channels = image->channels;
+    printf("channels: %u, ch: %u\n", channels, ch);
+    unsigned img_size = image->size;
+    int8_t* pix = image->ptr;
     int16_t val = 0;
-    for (uint32_t k = channel; k < img_size; k+=channels) {
+    for (uint32_t k = ch; k < img_size; k+=channels) {
         val = pix[k];
         if (channels == 3)
         {
@@ -231,24 +233,24 @@ void stats_compute_hist_channel(
 }
 
 static inline
-void stats_compute_histograms_rgb(
+void stats_compute_hist_rgb(
     histograms_t* histograms,
     image_cfg_t* image)
 {
-    stats_compute_hist_channel(&histograms->histogram_red, image, CHANNEL_RED);
-    stats_compute_hist_channel(&histograms->histogram_green, image, CHANNEL_GREEN);
-    stats_compute_hist_channel(&histograms->histogram_blue, image, CHANNEL_BLUE);
+    stats_compute_hist_channel(&(histograms->histogram_red), image, CHANNEL_RED);
+    stats_compute_hist_channel(&(histograms->histogram_green), image, CHANNEL_GREEN);
+    stats_compute_hist_channel(&(histograms->histogram_blue), image, CHANNEL_BLUE);
 }
 
 
 static inline
-void stats_compute_histograms_yuv(
+void stats_compute_hist_yuv(
     histograms_t* histograms,
     image_cfg_t* image)
 {
-    stats_compute_hist_channel(&histograms->histogram_red, image, CHANNEL_Y);
-    stats_compute_hist_channel(&histograms->histogram_green, image, CHANNEL_Y);
-    stats_compute_hist_channel(&histograms->histogram_blue, image, CHANNEL_Y);
+    stats_compute_hist_channel(&(histograms->histogram_red), image, CHANNEL_Y);
+    stats_compute_hist_channel(&(histograms->histogram_green), image, CHANNEL_Y);
+    stats_compute_hist_channel(&(histograms->histogram_blue), image, CHANNEL_Y);
 }
 
 
@@ -258,10 +260,10 @@ void stats_compute_histograms(
     image_cfg_t* image)
 {
     if (image->channels == 3) {
-        stats_compute_histograms_rgb(histograms, image);
+        stats_compute_hist_rgb(histograms, image);
     }
     else if (image->channels == 2) {
-        stats_compute_histograms_yuv(histograms, image);
+        stats_compute_hist_yuv(histograms, image);
     }
     else {
         xassert(0); // unsupported channel format
@@ -279,6 +281,7 @@ void stats_reset(
 
 uint8_t camera_isp_auto_exposure(image_cfg_t* image)
 {   
+    //assert(image->ptr != NULL && "image pointer is NULL");
     float inv_img_size = (1.0f) / (image->width * image->height);
     static uint8_t ae_value = 1;
     if (ae_value == AE_DONE) {
