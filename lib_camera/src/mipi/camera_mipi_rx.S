@@ -63,7 +63,7 @@ void MipiPacketRx(
 .align 4
 .skip 0
 FUNCTION_NAME:
-  dualentsp NSTACKWORDS
+  DUALENTSP_lu6 NSTACKWORDS
   std r4, r5, sp[1]
   std r6, r7, sp[2]
   std r8, r9, sp[3]

@@ -26,7 +26,7 @@ void xmemcpy(
 .cc_top FUNCTION_NAME.function,FUNCTION_NAME
 
 FUNCTION_NAME:
-    dualentsp NSTACKWORDS
+  DUALENTSP_lu6 NSTACKWORDS
   { shr tmp, len, 5               ; zext len, 5                   }
   { ldc r11, 32                   ; bf tmp, .L_loop_bot           } 
   .L_loop_top:

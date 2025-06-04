@@ -19,22 +19,24 @@
 
 
 static inline
-void save_image(image_cfg_t* image, char* filename) {
+void save_image(image_cfg_t* image, char* filename)
+{
     camera_io_write_image_file(
-        filename, 
-        (uint8_t*)image->ptr, 
-        image->height, 
-        image->width, 
+        filename,
+        (uint8_t*)image->ptr,
+        image->height,
+        image->width,
         image->channels);
     printstr("Image saved to file: ");
     printstrln(filename);
 }
 
-void user_app(chanend_t c_cam) {
+void user_app(chanend_t c_cam)
+{
 
     // Image and configuration
-    const unsigned h = 192;
-    const unsigned w = 192;
+    const unsigned h = 128;
+    const unsigned w = 128;
     const unsigned ch = 2;
     const unsigned img_size = h * w * ch;
     int8_t image_buffer[img_size] ALIGNED_4 = { 0 };
@@ -48,7 +50,7 @@ void user_app(chanend_t c_cam) {
         .height = h,
         .width = w,
         .channels = ch,
-        .size = h*w*ch,
+        .size = h * w * ch,
         .ptr = &image_buffer[0],
         .config = &config,
     };
@@ -58,11 +60,15 @@ void user_app(chanend_t c_cam) {
 
     // set coords and send to ISP
     camera_isp_coordinates_compute(&image);
-    camera_isp_prepare_capture(c_cam, &image);
+    //camera_isp_prepare_capture(c_cam, &image);
 
     unsigned t0 = get_reference_time();
-    camera_isp_start_capture(c_cam, &image);
-    camera_isp_get_capture(c_cam);
+    for (unsigned i = 0; i < 10; i++) {
+        printf("Capture %u \n", i);
+        camera_isp_start_capture(c_cam, &image);
+        camera_isp_get_capture(c_cam);
+        delay_milliseconds_cpp(20);
+    }
     unsigned t1 = get_reference_time();
     printf("Capture total time: %u [ticks]\n", (t1 - t0));
 

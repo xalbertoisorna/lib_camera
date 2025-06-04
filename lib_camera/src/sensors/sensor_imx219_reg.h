@@ -31,8 +31,8 @@
 #define REG_ORIENTATION   0x0172
 
 // PLL settings
-#define PLL_VT_MPY          0x0040  // pll1 - pix clk
-#define PLL_OP_MPY          0x0042  // pll2 - mipi clk
+#define PLL_VT_MPY          0x0027  // pll1 - pix clk
+#define PLL_OP_MPY          0x0040  // pll2 - mipi clk
 
 // if PLL1 < PLL2 data always correct
 // if PLL1 > PLL2 FIFO could handle
@@ -102,8 +102,8 @@ static i2c_line_t imx219_common_regs[] = {
   {0x479b, 0x0e},
 
   /* Frame Bank Register Group "A" */
-  {0x0160, 0x03}, /* Frame_Length_A */
-  {0x0161, 0x20},
+  {0x0160, 0x04}, /* Frame_Length_A */
+  {0x0161, 0x00},
   {0x0162, 0x0d},	/* Line_Length_A */
   {0x0163, 0x78},
   {0x0170, 0x01}, /* X_ODD_INC_A */
@@ -127,6 +127,7 @@ static i2c_line_t start_regs[] = {
 };
 
 static i2c_line_t stop_regs[] = {
+  {0x0106, 0x01},
   {0x0100, 0x00}, /* mode select streaming off */
 };
 

@@ -23,7 +23,7 @@ set(APP_COMPILER_FLAGS
     -g
     -report
     -Wall
-    #-Werror
+    -Werror
     #-fxscope
     -mcmodel=large
     -Wno-xcore-fptrgroup)

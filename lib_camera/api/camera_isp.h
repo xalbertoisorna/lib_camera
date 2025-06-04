@@ -174,6 +174,13 @@ void camera_isp_raw8_to_rgb2(image_cfg_t* image, int8_t* data_in, unsigned ln);
  */
 void camera_isp_raw8_to_rgb4(image_cfg_t* image, int8_t* data_in, unsigned ln);
 
+/**
+ * @brief Converts RAW8 lines into an YUV422 image. (downsampled by 2 horizontally)
+ * 
+ * @param image structure containing image configuration and output YUV pointer.
+ * @param data_in pointer to the input RAW8 data.
+ * @param ln current sensor line number.
+ */
 void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned ln);
 
 // ---------------------------- White Balancing / Auto Exposure  -------------------------------
@@ -192,9 +199,9 @@ void camera_isp_white_balance(image_cfg_t* image);
  * It is based on false position method of histogram skewness.
  * It works well in unimodal distributions, but it is not very robust in multimodal distributions.  
  * @param image structure containing image configuration and output RGB pointer.
- * @return uint8_t new exposure value in [1, 80] or 0 if the exposure is already adjusted.
+ * @return unsigned new exposure value in [1, 80] or 0 if the exposure is already adjusted.
  */
-uint8_t camera_isp_auto_exposure(image_cfg_t* image);
+unsigned camera_isp_auto_exposure(image_cfg_t* image);
 
 /// @} endgroup camera_isp_api
 

@@ -66,9 +66,7 @@ void camera_isp_prepare_capture(chanend_t c_cam, image_cfg_t* image)
   const unsigned max_steps = 10;
   for (unsigned i = 0; i < max_steps; i++) {
     camera_isp_start_capture(c_cam, image);
-    delay_milliseconds_cpp(1);
     camera_isp_get_capture(c_cam);
-    delay_milliseconds_cpp(1);
   }
 }
  
@@ -117,16 +115,16 @@ void handle_end_of_frame(
 
   // apply AE if enabled
 #if (CONFIG_APPLY_AE)
-  ph_state.ae_value = camera_isp_auto_exposure(image);
-  if (ph_state.ae_value) {
-    camera_sensor_set_exposure(ph_state.ae_value);
+  static unsigned ae_value = 0;
+  ae_value = camera_isp_auto_exposure(image);
+  if (ae_value) {
+    camera_sensor_set_exposure(ae_value);
   }
 #endif
 
   // signal image ready
   ph_state.capture_finished = 1;
   chan_out_byte(c_cam, 1);
-  
 }
 
 static
@@ -283,6 +281,7 @@ void camera_isp_packet_handler(
 
     case MIPI_DT_FRAME_END:
       handle_end_of_frame(image_cfg, c_isp_to_user);
+      ph_state.wait_for_frame_start = 1;
       break;
 
     default:
