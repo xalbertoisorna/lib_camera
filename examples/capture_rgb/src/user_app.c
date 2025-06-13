@@ -53,11 +53,6 @@ void user_app(chanend_t c_cam) {
         .config = &config
     };
 
-    // wait a few seconds and ask somthing
-    delay_seconds_cpp(3);
-    
-    // From here, it could be a while loop
-    
     // set coords and send to ISP
     camera_isp_coordinates_compute(&image);
     camera_isp_start_capture(c_cam, &image);
