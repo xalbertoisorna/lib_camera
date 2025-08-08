@@ -24,7 +24,7 @@
 #define AE_MIN_EXPOSURE     (1)       // minimum value for exposure
 #define AE_MAX_EXPOSURE     (80)      // maximum value for exposure
 #define AE_DONE             (0)       // done flag for auto exposure
-#define AE_RESET_COUNT      (0)       // counter for resetting the auto exposure, 0 means no reset
+#define AE_RESET_COUNT      (5)       // counter for resetting the auto exposure, 0 means no reset
 
 typedef enum {
     CHANNEL_RED = 0,
@@ -82,7 +82,7 @@ uint8_t AE_compute_new_exposure(float exposure, float skewness)
 {
     static float a = AE_MIN_EXPOSURE;     // minimum value for exposure
     static float b = AE_MAX_EXPOSURE;    // maximum value for exposure
-     static int count = AE_RESET_COUNT;
+    static int count = AE_RESET_COUNT;
 
     static float fa = -1.0;   // minimimum skewness
     static float fb = 1.0;    // maximum skewness
@@ -98,12 +98,11 @@ uint8_t AE_compute_new_exposure(float exposure, float skewness)
     }
 
     if (count > 0) {
-        count--;
-    }
-    else {
-        a = AE_MIN_EXPOSURE; b = AE_MAX_EXPOSURE;
-        fa = -1.0; fb = 1.0;
-        count = 5;
+        if (--count == 0) {
+            a = AE_MIN_EXPOSURE; b = AE_MAX_EXPOSURE;
+            count = AE_RESET_COUNT;
+            fa = -1.0; fb = 1.0;
+        }
     }
 
     c = b - fb * ((b - a) / (fb - fa));
