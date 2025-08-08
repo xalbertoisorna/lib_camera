@@ -24,7 +24,7 @@
 #define AE_MIN_EXPOSURE     (1)       // minimum value for exposure
 #define AE_MAX_EXPOSURE     (80)      // maximum value for exposure
 #define AE_DONE             (0)       // done flag for auto exposure
-#define AE_RESET_COUNT      (5)       // counter for resetting the auto exposure, 0 means no reset
+#define AE_RESET_COUNT      (0)       // counter for resetting the auto exposure, 0 means no reset
 
 typedef enum {
     CHANNEL_RED = 0,
