@@ -20,6 +20,19 @@ It defines global macros for main camera configuration and provides functions to
    :project: lib_camera
    :members:
 
+.. c:function:: void camera_main(chanend_t c_camera)
+
+   Main entry point for the lib_camera module.
+
+   This function initializes and configures the MIPI interface, and starts both
+   the MIPI RX and ISP processing threads. Usable when MIPI and I2C are on the
+   same or different tiles. It can be called from XC only.
+
+   :param c_camera: Channel endpoint for communication with the user application.
+   :return: void
+   :note: This function can only be called from XC code.
+   :note: Use ``camera_main_single_tile()`` for single-tile configurations.
+
 ISP
 ---
 
