@@ -3,15 +3,18 @@
 
 #include <stdint.h>
 #include <xcore/assert.h>
+#include <xcore/select.h>
 #include "debug_print.h"
 
 #include "camera.h"
 #include "camera_mipi.h"
-#include "sensor_wrapper.h"
 #include "sensor_base.hpp"
 #include "camera_utils.h"
 
 #include "sensor_imx219.hpp"
+
+#include "sensor_wrapper.h"
+#include "board_support.h"
 
 using namespace sensor;
 
@@ -20,12 +23,12 @@ IMX219* camera_sensor_ptr = nullptr;
 i2c_master_t i2c_ctx;
 i2c_config_t i2c_conf;
 
-void camera_sensor_init() {
+void camera_sensor_init_rx() {
   // I2C settings
   i2c_conf.device_addr = I2C_DEV_ADDR;
   i2c_conf.speed = I2C_DEV_SPEED;
-  i2c_conf.p_scl = XS1_PORT_4E;
-  i2c_conf.p_sda = XS1_PORT_4E;
+  i2c_conf.p_scl = PORT_I2C_SCL;
+  i2c_conf.p_sda = PORT_I2C_SDA;
   i2c_conf.i2c_ctx_ptr = &i2c_ctx;
 
   // Sensor settings
@@ -53,22 +56,62 @@ void camera_sensor_init() {
   xassert((ret == 0) && "Could not initialise camera");
 }
 
-void camera_sensor_start() {
+void camera_sensor_start_rx() {
   int ret = camera_sensor_ptr->stream_start();
   xassert((ret == 0) && "Could not start camera");
 }
 
-void camera_sensor_stop() {
+void camera_sensor_stop_rx() {
   int ret = camera_sensor_ptr->stream_stop();
   xassert((ret == 0) && "Could not stop camera");
 }
 
-void camera_sensor_set_tp(uint16_t pattern){
+void camera_sensor_set_tp_rx(uint16_t pattern){
   int ret = camera_sensor_ptr->set_test_pattern(pattern);
   xassert((ret == 0) && "Could not set test pattern");
 }
 
-void camera_sensor_set_exposure(uint32_t dBGain){
+void camera_sensor_set_exposure_rx(uint32_t dBGain){
   int ret = camera_sensor_ptr->set_exposure(dBGain);
   xassert((ret == 0) && "Could not set exposure");
+}
+
+void camera_i2c_thread(chanend_t c_i2c)
+{
+	sensor_control_t cmd = SENSOR_INIT;
+	SELECT_RES(CASE_THEN(c_i2c, c_i2c_handler))
+	{
+	c_i2c_handler:
+		cmd = (sensor_control_t)chan_in_word(c_i2c);
+		switch (cmd) {
+			case SENSOR_INIT: {
+				camera_sensor_init_rx(); 
+				xassert(camera_sensor_ptr != nullptr && "Camera sensor pointer is null");
+				break;
+			}
+			case SENSOR_STREAM_START: {
+				camera_sensor_start_rx(); 
+				break;
+			}
+			case SENSOR_STREAM_STOP: {
+				camera_sensor_stop_rx(); 
+				break;
+			}
+			case SENSOR_SET_EXPOSURE: {
+				uint32_t dBGain = chan_in_word(c_i2c);
+				camera_sensor_set_exposure_rx(dBGain);
+				break;
+			}
+			case SENSOR_SET_TEST_PATTERN: {
+				uint16_t pattern = chan_in_word(c_i2c);
+				camera_sensor_set_tp_rx(pattern);
+				break;
+			}
+			default: {
+				xassert(0 && "Unknown sensor control command");
+				break;
+			}
+		}
+		continue;
+	}
 }
