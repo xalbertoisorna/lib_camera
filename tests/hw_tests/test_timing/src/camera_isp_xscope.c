@@ -81,9 +81,15 @@ void handle_no_expected_lines() {
 static
 void handle_post_process(image_cfg_t* image)
 {
+  // Image pointer could be NULL if EOF is reached before asking a picture
+  if (image->ptr == NULL) {
+    return;
+  }
 
 #if (CONFIG_APPLY_AWB)
-  camera_isp_white_balance(image);
+  if (image->config->mode != MODE_YUV2) {
+    camera_isp_white_balance(image);
+  }
 #endif
 
 #if (CONFIG_APPLY_AE)
@@ -94,6 +100,17 @@ void handle_post_process(image_cfg_t* image)
 #endif
 }
 
+static
+void handle_end_of_frame(
+  image_cfg_t* image,
+  chanend_t c_cam)
+{
+  camera_sensor_stop();
+  if (image->ptr != NULL) {
+    ph_state.capture_finished = 1;
+    chan_out_byte(c_cam, 1);
+  }
+}
 
 static
 void handle_expected_lines(image_cfg_t* image, int8_t* data_in) {
@@ -172,16 +189,15 @@ void camera_isp_packet_handler(
       handle_no_expected_lines();
       handle_expected_lines(image_cfg, data_in);
       ph_state.in_line_number++;
+      if (ph_state.in_line_number == 400) {
+        // camera_sensor_stop();
+      }
       break;
 
     case MIPI_DT_FRAME_END:
       xscope_int(EOF, ph_state.frame_number - 1);
-      camera_sensor_stop();
-      if (image_cfg->ptr == NULL) {
-        return;
-      }
       handle_post_process(image_cfg);
-      chan_out_byte(c_isp_to_user, 1);
+      handle_end_of_frame(image_cfg, c_isp_to_user);
       break;
 
     default:
