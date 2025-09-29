@@ -66,7 +66,6 @@ void user_app(chanend_t c_cam) {
         t_start[i] = get_reference_time();
         camera_isp_start_capture_xscope(c_cam, &image);
         camera_isp_get_capture_xscope(c_cam);
-        delay_milliseconds_cpp(1);
         t_end[i] = get_reference_time();
     }
     

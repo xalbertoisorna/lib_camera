@@ -105,7 +105,6 @@ void handle_end_of_frame(
   image_cfg_t* image,
   chanend_t c_cam)
 {
-  camera_sensor_stop();
   if (image->ptr != NULL) {
     ph_state.capture_finished = 1;
     chan_out_byte(c_cam, 1);
@@ -167,10 +166,10 @@ void camera_isp_packet_handler(
   xscope_int(WC, word_count);
   
   // Wait for a clean frame
-  /*
   if (ph_state.wait_for_frame_start
     && data_type != MIPI_DT_FRAME_START) return;
-  */
+  
+  static unsigned counter = 0;
 
   // Data pointers calculation
   int8_t* data_in = (int8_t*)(&pkt->payload[0]);
@@ -189,12 +188,13 @@ void camera_isp_packet_handler(
       handle_no_expected_lines();
       handle_expected_lines(image_cfg, data_in);
       ph_state.in_line_number++;
-      if (ph_state.in_line_number == 400) {
-        // camera_sensor_stop();
+      if (ph_state.in_line_number == 122) {
+        camera_sensor_stop();
       }
       break;
 
     case MIPI_DT_FRAME_END:
+      // camera_sensor_stop();
       xscope_int(EOF, ph_state.frame_number - 1);
       handle_post_process(image_cfg);
       handle_end_of_frame(image_cfg, c_isp_to_user);

@@ -31,15 +31,15 @@
 #define REG_ORIENTATION   0x0172
 
 // PLL settings
-#define PLL_VT_MPY          0x0024 // pll1 - pix clk
-#define PLL_OP_MPY          0x0040 // pll2 - mipi clk
+#define PLL_VT_MPY          0x0028 // pll1 - pix clk
+#define PLL_OP_MPY          0x0042 // pll2 - mipi clk
 
 // if PLL1 < PLL2 data always correct
 // if PLL1 > PLL2 FIFO could handle
 
 // Gain params
 #define GAIN_MIN_DB          0
-#define GAIN_DEFAULT_DB     40
+#define GAIN_DEFAULT_DB     42
 #define GAIN_MAX_DB         84
 
 // Test pattern registers
@@ -65,7 +65,7 @@ static i2c_line_t imx219_common_regs[] = {
   {SLEEP, TRSTUS},  /* software_reset       1, reset the chip */
 
   {0x0100, 0x00},	/* Mode Select */
-
+ 
   /* To Access Addresses 3000-5fff, send the following commands */
   {0x30eb, 0x0c},
   {0x30eb, 0x05},
@@ -76,19 +76,15 @@ static i2c_line_t imx219_common_regs[] = {
 
   /* PLL Clock Table */
   { 0x812A, 0x1800 }, /* EXCK_FREQ          24.00, for 24 Mhz */
-  { 0x0304, 0x02 }, /* PREPLLCK_VT_DIV      2, for pre divide by 2 */
-  { 0x0305, 0x02 }, /* PREPLLCK_OP_DIV      2, for pre divide by 2 */
+  { 0x0304, 0x03 }, /* PREPLLCK_VT_DIV      2, for pre divide by 2 */
+  { 0x0305, 0x03 }, /* PREPLLCK_OP_DIV      2, for pre divide by 2 */
   { 0x8306, PLL_VT_MPY}, /* PLL_VT_MPY      0x27, for multiply by 39, pixclk=187.2 MHz */
   { 0x830C, PLL_OP_MPY}, /* PLL_OP_MPY      0x40, for multiply by 64, MIPI clk=768 MHz */
-  { 0x0301, 0x0A }, /* VTPXCK_DIV           5, ? */
+  { 0x0301, 0x08 }, /* VTPXCK_DIV           5, ? */
   { 0x0303, 0x01 }, /* VTSYCK_DIV           1, ? */
-  { 0x0309, 0x0A }, /* OPPXCK_DIV           8, has to match RAW8 if you have raw8*/
+  { 0x0309, 0x08 }, /* OPPXCK_DIV           8, has to match RAW8 if you have raw8*/
   { 0x030B, 0x01 }, /* OPSYCK_DIV           1, has to be 1? */
   
-  // pck clock
-  {0x1148, 0x00},    
-  {0x1149, 0xF0},
-
   /* Undocumented registers */
   {0x455e, 0x00},
   {0x471e, 0x4b},
@@ -104,11 +100,13 @@ static i2c_line_t imx219_common_regs[] = {
   {0x479b, 0x0e},
 
   /* Frame Bank Register Group "A" */
-  {0x0162, 0x0d},	/* Line_Length_A */
+  //{0x0160, 0x04}, /* Frame_Length_A */
+  //{0x0161, 0x00},
+  {0x0162, 0x0D},	/* Line_Length_A */
   {0x0163, 0x78},
   {0x0170, 0x01}, /* X_ODD_INC_A */
   {0x0171, 0x01}, /* Y_ODD_INC_A */
-
+  
   /* Output setup registers */
   {0x0114, 0x01},	/* CSI 2-Lane Mode */
   {0x0128, 0x00},	/* DPHY Auto Mode */
