@@ -8,7 +8,9 @@ message("XMOS_SANDBOX_DIR: ${XMOS_SANDBOX_DIR}")
 
 # Target, xscope
 set(APP_HW_TARGET src/XK-EVK-XU316-AIV.xn)
-set(APP_XSCOPE_SRCS src/config.xscope)
+
+# Enable time or capture
+set(APP_XSCOPE_SRCS ${APP_XSCOPE_SRCS} src/config_fileio.xscope)
 
 # Includes, Dependencies
 list(APPEND APP_INCLUDES src)
