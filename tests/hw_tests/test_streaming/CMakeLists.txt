@@ -1,0 +1,29 @@
+cmake_minimum_required(VERSION 3.21)
+include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
+project(test_streaming)
+
+# Sandbox configuration
+set(XMOS_SANDBOX_DIR ${CMAKE_CURRENT_LIST_DIR}/../../../..)
+message("XMOS_SANDBOX_DIR: ${XMOS_SANDBOX_DIR}")
+
+# Target, xscope
+set(APP_HW_TARGET src/XK-EVK-XU316-AIV.xn)
+set(APP_XSCOPE_SRCS src/config.xscope)
+
+# Includes, Dependencies
+# src/camera_conf.h is picked up by lib_camera as an optional header (enables streaming)
+set(APP_INCLUDES src)
+set(APP_DEPENDENT_MODULES "lib_camera")
+
+# Flags
+set(
+    APP_COMPILER_FLAGS
+    -O3
+    -g
+    -report
+    -Wall
+    -Werror
+    -fxscope
+)
+
+XMOS_REGISTER_APP()

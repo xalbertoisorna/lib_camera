@@ -61,4 +61,12 @@
 #define CONFIG_APPLY_AE     (1) ///< Apply Auto Exposure: 0 to skip, 1 apply once, 2 continuous
 #endif
 
+#ifndef CONFIG_STREAMING
+#define CONFIG_STREAMING    (0) ///< Sensor mode: 0 start/stop the sensor per capture, 1 continuous streaming
+#endif
+
+#ifndef CONFIG_STREAMING_FPS
+#define CONFIG_STREAMING_FPS (30) ///< Target frame rate in streaming mode (caps the exposure time)
+#endif
+
 /// @} addtogroup camera_main

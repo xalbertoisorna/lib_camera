@@ -9,6 +9,13 @@ lib_camera change log
   * ADDED: ``test_flip_vertical`` hardware test.
   * FIXED: RAW mode crash by skipping AWB and AE (AWB only applies to RGB, AE to RGB/YUV).
   * FIXED: vertical flip crash in RGB and YUV modes (ISP line index now relative to ROI start).
+  * ADDED: streaming mode (``CONFIG_STREAMING``, ``CONFIG_STREAMING_FPS``): sensor
+    kept streaming with 2x pixel clock, 30 fps measured.
+  * ADDED: ``camera_isp_line_callback`` to forward image rows as they are produced.
+  * ADDED: ``camera_isp_stop`` to stop the sensor.
+  * ADDED: ``test_streaming`` hardware test.
+  * CHANGED: white balance applied per row instead of at the end of the frame.
+  * CHANGED: captures start at a frame start and only complete frames are delivered.
 
 2.0.1
 -----
