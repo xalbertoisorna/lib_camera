@@ -4,6 +4,7 @@ include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
 project(lib_camera_hw_tests)
 
 add_subdirectory(test_auto_exposure)
+add_subdirectory(test_flip_vertical)
 add_subdirectory(test_img_patterns)
 add_subdirectory(test_rotate_90)
 add_subdirectory(test_timing)

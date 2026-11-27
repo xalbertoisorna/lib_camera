@@ -5,6 +5,10 @@ lib_camera change log
 -----
 
   * ADDED: Resource Usage section to documentation.
+  * ADDED: optional ``camera_conf.h`` header to override build-time settings.
+  * ADDED: ``test_flip_vertical`` hardware test.
+  * FIXED: RAW mode capture crashing in white balance and auto exposure.
+    AWB is now applied to RGB modes only and AE to RGB and YUV modes only.
 
 2.0.1
 -----
@@ -82,4 +86,3 @@ lib_camera change log
   * ADDED: cropping / scaling : image scalling, cropping.
   * ADDED: Image statistics: histogram, mean, variance, skewness.
   * ADDED: sensor control, start, stop functons.
-
