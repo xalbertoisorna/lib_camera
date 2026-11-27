@@ -27,9 +27,7 @@ void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned senso
     unsigned x1 = image->config->x1;
     unsigned y1 = image->config->y1;
     unsigned img_width = image->width;
-    unsigned img_channels = image->channels;
     int8_t* data_src = data_in + x1;
-    int8_t* img_ptr = image->ptr;
 
     static int8_t input_rows[2][MODE_YUV2_MAX_SIZE] ALIGNED_8 = { {0} };
     // line index relative to the ROI start (y1 is odd with vertical flip)
@@ -38,7 +36,7 @@ void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned senso
     xmemcpy(&input_rows[buff_ln][0], data_src, img_width * 2);
     if(buff_ln == 1) {
         unsigned img_ln = (roi_ln - 1) >> 1;
-        int8_t *out_ptr = img_ptr + ((img_ln * img_width)) * (img_channels);
+        int8_t *out_ptr = camera_isp_row_ptr(image, img_ln);
         raw8_block_to_yuv422(out_ptr, &input_rows[0][0], img_width, MODE_YUV2_MAX_SIZE);
     }
 }

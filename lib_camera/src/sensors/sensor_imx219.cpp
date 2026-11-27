@@ -46,7 +46,9 @@ IMX219::IMX219(
 void IMX219::compute_streaming_timing() {
 #if (CONFIG_STREAMING)
   // frame period for the target fps, never shorter than readout + blanking
-  const uint32_t line_ns = LINE_TIME_NS_PER_VTPXCK_DIV * VTPXCK_DIV_STREAMING;
+  static_assert(CONFIG_STREAMING_LINE_LENGTH >= LINE_LENGTH_DEFAULT, "CONFIG_STREAMING_LINE_LENGTH below the minimum");
+  const uint32_t line_ns = LINE_TIME_NS_PER_VTPXCK_DIV * VTPXCK_DIV_STREAMING
+                           * CONFIG_STREAMING_LINE_LENGTH / LINE_LENGTH_DEFAULT;
   uint32_t fl = 1000000000u / ((uint32_t)CONFIG_STREAMING_FPS * line_ns);
   uint32_t fl_min = this->y_len + STREAMING_BLANK_LINES;
   if (fl < fl_min) {
@@ -95,6 +97,8 @@ int IMX219::configure() {
   ret |= this->i2c_write_table(GET_TABLE(binning_reg));
   // set frame length (streaming mode only)
   if (this->frame_length) {
+    ret |= this->i2c_write_line(REG_LINE_LENGTH, (uint8_t)(CONFIG_STREAMING_LINE_LENGTH >> 8));
+    ret |= this->i2c_write_line(REG_LINE_LENGTH + 1, (uint8_t)(CONFIG_STREAMING_LINE_LENGTH));
     ret |= this->i2c_write_line(REG_FRM_LENGTH, (uint8_t)(this->frame_length >> 8));
     ret |= this->i2c_write_line(REG_FRM_LENGTH + 1, (uint8_t)(this->frame_length));
   }

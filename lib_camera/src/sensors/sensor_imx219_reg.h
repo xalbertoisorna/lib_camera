@@ -33,8 +33,10 @@
 // Timing (streaming mode)
 #define REG_VTPXCK_DIV          0x0301  // video timing pixel clock divider (4, 5, 8 or 10)
 #define VTPXCK_DIV_DEFAULT      10
-#define VTPXCK_DIV_STREAMING    5       // 2x pixel clock: halves the line time
+#define VTPXCK_DIV_STREAMING    CONFIG_STREAMING_PCK_DIV   // 5: 2x pixel clock, halves the line time
 #define REG_FRM_LENGTH          0x0160  // frame_length_lines (16 bit)
+#define REG_LINE_LENGTH         0x0162  // line_length_pck (16 bit)
+#define LINE_LENGTH_DEFAULT     3448    // line_length_pck of the register tables
 // Line time scales with VTPXCK_DIV. Measured on the board (line_length_pck = 3448,
 // 2x2 binning): 59.86 us per line at VTPXCK_DIV = 10, 29.93 us at 5.
 #define LINE_TIME_NS_PER_VTPXCK_DIV   5986

@@ -125,8 +125,8 @@ void handle_post_process(image_cfg_t* image)
   // Note: white balance is applied per row, as rows are completed (see handle_rows_ready)
 
 #if (CONFIG_APPLY_AE)
-  // auto exposure statistics support RGB and YUV images only (not RAW)
-  if (image->config->mode != MODE_RAW) {
+  // auto exposure statistics support RGB and YUV images only (not RAW), and need the whole image
+  if (image->config->mode != MODE_RAW && image->ring_rows == 0) {
     ph_state.ae_value = camera_isp_auto_exposure(image);
     if (ph_state.ae_value) {
       camera_sensor_set_exposure(ph_state.ae_value);
@@ -196,9 +196,8 @@ void handle_rows_ready(image_cfg_t* image, unsigned roi_ln)
   }
 #endif
 
-  const unsigned row_len = image->width * image->channels;
   for (unsigned r = first_row; r < first_row + num_rows; r++) {
-    camera_isp_line_callback(image, r, image->ptr + (r * row_len));
+    camera_isp_line_callback(image, r, camera_isp_row_ptr(image, r));
   }
 }
 
@@ -299,6 +298,7 @@ void camera_isp_coordinates_compute(image_cfg_t* img_cfg){
   xassert(cfg->y2 <= SENSOR_HEIGHT && "y2");
   xassert((img_cfg->width % 4) == 0 && "width has to be divisible by 4");
   xassert((img_cfg->height % 4) == 0 && "height has to be divisible by 4");
+  xassert((img_cfg->ring_rows == 0 || mode == MODE_RAW || mode == MODE_YUV2) && "ring_rows: RAW and YUV2 only");
 }
 
 

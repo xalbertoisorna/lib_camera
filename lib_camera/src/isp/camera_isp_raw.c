@@ -13,7 +13,7 @@
 void camera_isp_raw8_to_raw8(image_cfg_t* image, int8_t* data_in, unsigned ln) {
   unsigned img_ln = ln - image->config->y1;
   int8_t* data_src = data_in + image->config->x1;
-  int8_t* data_dst = image->ptr + (img_ln * image->width);
+  int8_t* data_dst = camera_isp_row_ptr(image, img_ln);
   xmemcpy(
     data_dst,
     data_src,

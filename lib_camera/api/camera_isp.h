@@ -21,11 +21,13 @@ C_API_START
 // Maximum buffer sizes for each camera mode.
 // Note: Values are derived from the base SENSOR_WIDTH, accounting for 
 // resolution scaling and hardware alignment/parity constraints.
-#define MODE_RAW_MAX_SIZE           (800)
+// RAW, RGB4 and YUV2 hold full sensor rows, so they grow with SENSOR_WIDTH above 800.
+#define MODE_MAX_SIZE_800_OR_SENSOR ((SENSOR_WIDTH) > 800 ? (SENSOR_WIDTH) : 800)
+#define MODE_RAW_MAX_SIZE           MODE_MAX_SIZE_800_OR_SENSOR
 #define MODE_RGB1_MAX_SIZE          (200)
 #define MODE_RGB2_MAX_SIZE          (400)
-#define MODE_RGB4_MAX_SIZE          (800)
-#define MODE_YUV2_MAX_SIZE          (800)
+#define MODE_RGB4_MAX_SIZE          MODE_MAX_SIZE_800_OR_SENSOR
+#define MODE_YUV2_MAX_SIZE          MODE_MAX_SIZE_800_OR_SENSOR
 
 // ---------------------------- ISP CFG -------------------------------
 
@@ -59,7 +61,22 @@ typedef struct {
   unsigned size;      ///< Size of the output image in bytes
   int8_t* ptr;        ///< Pointer to the output image data
   camera_cfg_t* config; ///< Pointer to the camera configuration structure
+  /**
+   * Rows held by the output buffer (MODE_RAW and MODE_YUV2 only). 0: the buffer holds the whole image.
+   * Otherwise the buffer is a ring of `ring_rows` rows: row `r` is written at `r % ring_rows`, so a large image
+   * can be streamed through `camera_isp_line_callback` without storing it whole. The consumer must copy each row
+   * before the ISP wraps round to it. Auto exposure is not computed from ring images.
+   */
+  unsigned ring_rows;
 } image_cfg_t;
+
+/**
+ * @brief Pointer to output row `row` of an image, taking `ring_rows` into account.
+ */
+static inline int8_t* camera_isp_row_ptr(const image_cfg_t* image, unsigned row) {
+  unsigned r = image->ring_rows ? (row % image->ring_rows) : row;
+  return image->ptr + r * image->width * image->channels;
+}
 
 /// @} endgroup camera_isp_cfg
 
