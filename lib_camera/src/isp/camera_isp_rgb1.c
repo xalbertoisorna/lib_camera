@@ -29,15 +29,18 @@ void camera_isp_raw8_to_rgb1(image_cfg_t* image, int8_t* data_in, unsigned senso
     // 4 rows of MODE_RGB1_MAX_SIZE pixels
     static int8_t input_rows[4][MODE_RGB1_MAX_SIZE] ALIGNED_8 = { {0} };
 
+    // line index relative to the ROI start (y1 is odd with vertical flip)
+    unsigned roi_ln = sensor_ln - y1;
+
     // if even, move data, if odd compute
-    unsigned ln_is_even = (sensor_ln % 2 == 0);
+    unsigned ln_is_even = (roi_ln % 2 == 0);
     if (ln_is_even) {
         xmemcpy(&input_rows[0][0], &input_rows[2][0], img_width);     // move [2][x] to [0][x]
         xmemcpy(&input_rows[1][0], &input_rows[3][0], img_width);     // move [3][x] to [1][x]
         xmemcpy(&input_rows[2][0], data_src, img_width);              // move new data to [2][x]
     }
     else{ // if odd
-        unsigned img_ln = sensor_ln - y1 - 1;        
+        unsigned img_ln = roi_ln - 1;
         int8_t *img_ptr = image->ptr;
 
         xmemcpy(&input_rows[3][0], data_src, img_width);              // move new data to [3][x]

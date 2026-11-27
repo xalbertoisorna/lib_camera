@@ -26,12 +26,14 @@ void camera_isp_raw8_to_rgb2(image_cfg_t* image, int8_t* data_in, unsigned senso
     // 4 rows of MODE_RGB2_MAX_SIZE pixels
     static int8_t input_rows[4][MODE_RGB2_MAX_SIZE] ALIGNED_8 = { {0} };
 
-    unsigned buff_ln = sensor_ln % 4;
+    // line index relative to the ROI start (y1 is odd with vertical flip)
+    unsigned roi_ln = sensor_ln - y1;
+    unsigned buff_ln = roi_ln % 4;
 
     xmemcpy(&input_rows[buff_ln][0], data_src, img_width * 2);
 
     if(buff_ln == 3) {
-        unsigned img_ln = sensor_ln - y1 - 3;
+        unsigned img_ln = roi_ln - 3;
         int8_t *img_ptr = image->ptr;
 
         split_chans_4ln_raw8_to_rgb(img_ptr, &input_rows[0][0], img_ln, img_width, MODE_RGB2_MAX_SIZE);

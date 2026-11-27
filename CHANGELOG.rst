@@ -5,6 +5,10 @@ lib_camera change log
 -----
 
   * ADDED: Resource Usage section to documentation.
+  * ADDED: optional ``camera_conf.h`` header to override build-time settings.
+  * ADDED: ``test_flip_vertical`` hardware test.
+  * FIXED: RAW mode crash by skipping AWB and AE (AWB only applies to RGB, AE to RGB/YUV).
+  * FIXED: vertical flip crash in RGB and YUV modes (ISP line index now relative to ROI start).
 
 2.0.1
 -----
@@ -82,4 +86,3 @@ lib_camera change log
   * ADDED: cropping / scaling : image scalling, cropping.
   * ADDED: Image statistics: histogram, mean, variance, skewness.
   * ADDED: sensor control, start, stop functons.
-

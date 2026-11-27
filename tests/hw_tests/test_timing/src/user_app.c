@@ -32,6 +32,9 @@ void save_image(image_cfg_t* image, char* filename) {
 }
 
 void user_app(chanend_t c_cam) {
+    // lossless xscope so image file writes to the host are not truncated
+    xscope_mode_lossless();
+
     // Image and configuration
     const unsigned h = 200;
     const unsigned w = 200;

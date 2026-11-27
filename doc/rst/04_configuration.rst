@@ -17,21 +17,47 @@ The library provides a logging mechanism to help developers debug and monitor th
 - -DDEBUG_PRINT_ENABLE_CAM_ISP=1 : This option enables debug prints for the ISP thread. It can be used to monitor the status of the ISP and its components. Disabled by default.
 - -DDEBUG_PRINT_ENABLE_CAM_MIPI=1 : This option enables debug prints for the MIPI thread. It can be used to monitor the status of the MIPI receiver and its components. Disabled by default.
 - -DDEBUG_PRINT_ENABLE_CAM_I2C=1 : This option enables debug prints for the I2C communication. It can be used to monitor the I2C transactions between the camera sensor and the ISP. Disabled by default.
-- -DCONFIG_APPLY_AE=1: This option enables the application of automatic exposure (AE) settings (default). It can be set to 0 to disable AE. Setting it to 2 enables continuous AE adjustment.
-- -DCONFIG_APPLY_AWB=1: This option enables the application of automatic white balance (AWB) settings (default). It can be set to 0 to disable AWB.
 - -DLIBXCORE_XASSERT_IS_ASSERT=1 : This option configures the library to use the standard ``assert`` C standard library instead of ``lib_xcore/xassert`` for runtime exceptions. Enabling this provides more detailed error reporting, as ``assert`` outputs information about the error location, while ``xassert`` does not. Default is set to 0.
 
 Default Settings
 ----------------
 
-The main default settings can be found in the ``camera.h`` file. The following settings are available:
+The library build-time settings are defined in ``camera_conf_default.h``. Each setting is guarded with ``#ifndef``, so any of them can be overridden by the application. The following settings and their default values are available:
 
-.. literalinclude:: ../../lib_camera/api/camera.h
+.. literalinclude:: ../../lib_camera/api/camera_conf_default.h
    :language: c
    :start-at:  // High-Level Sensor Configuration
-   :end-before: /**
+   :end-before: /// @}
 
-This chooses the default settings and options for the camera library. This configuration will impose some constraints that are suitable for most applications, but can be modified to suit specific needs. 
+- ``SENSOR_WIDTH`` / ``SENSOR_HEIGHT``: size of the sensor region the ISP works on. Any requested image region must fit within it. With binning enabled the region is read from twice its size on the sensor, so for the IMX219 it is limited to 1640x1232 (``BINNING_ON``) or 3280x2464 (``BINNING_OFF``).
+- ``CONFIG_FLIP``: sensor readout orientation. ``FLIP_VERTICAL`` flips the image vertically in the sensor hardware; the ISP shifts the region of interest by one line to keep the same Bayer pattern.
+- ``CONFIG_BINNING``: enables 2x2 binning in the sensor (``BINNING_ON``) or full resolution readout (``BINNING_OFF``).
+- ``CONFIG_CENTRALISE``: centres the sensor region within the sensor active area (``CENTRALISE_ON``) or places it at the origin (``CENTRALISE_OFF``).
+- ``CONFIG_APPLY_AWB``: ``0`` disables automatic white balance, ``1`` enables it. Only applied to RGB modes.
+- ``CONFIG_APPLY_AE``: ``0`` disables automatic exposure, ``1`` applies it once, ``2`` applies it continuously. Only applied to RGB and YUV modes.
+
+Overriding Default Settings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+There are two ways of overriding the default settings from the application:
+
+**Optional configuration header**: the library declares ``camera_conf.h`` as an optional header (``LIB_OPTIONAL_HEADERS`` in ``lib_build_info.cmake``). If the application provides a file named ``camera_conf.h`` in one of its include directories (``APP_INCLUDES``), XCommon CMake detects it and the library includes it before applying the defaults. Only the settings that need to change have to be defined. For example:
+
+.. code-block:: c
+
+    // camera_conf.h (application)
+    #pragma once
+
+    #define CONFIG_FLIP      FLIP_VERTICAL
+    #define CONFIG_APPLY_AE  (2)
+
+**Compiler definitions**: settings can also be passed as definitions in the application ``APP_COMPILER_FLAGS``, for example ``-DCONFIG_APPLY_AE=2``.
+
+.. note::
+
+   Do not define the same setting with both methods, as this results in a macro redefinition error. Because ``camera_conf.h`` is also included from XC files (``mapfile.xc``), it must only contain preprocessor definitions.
+
+The ``test_flip_vertical`` hardware test (``tests/hw_tests/test_flip_vertical``) shows an application overriding ``CONFIG_FLIP`` through ``camera_conf.h``.
 
 Image Configuration
 -------------------

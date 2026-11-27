@@ -114,16 +114,24 @@ void handle_post_process(image_cfg_t* image)
     return;
   }
 
+#if (CONFIG_APPLY_AWB || CONFIG_APPLY_AE)
+  camera_mode_t mode = image->config->mode;
+#endif
+
 #if (CONFIG_APPLY_AWB)
-  if (image->config->mode != MODE_YUV2) {
+  // white balance kernel operates on RGB888 pixels only (not RAW or YUV)
+  if (mode == MODE_RGB1 || mode == MODE_RGB2 || mode == MODE_RGB4) {
     camera_isp_white_balance(image);
   }
 #endif
 
 #if (CONFIG_APPLY_AE)
-  ph_state.ae_value = camera_isp_auto_exposure(image);
-  if (ph_state.ae_value) {
-    camera_sensor_set_exposure(ph_state.ae_value);
+  // auto exposure statistics support RGB and YUV images only (not RAW)
+  if (mode != MODE_RAW) {
+    ph_state.ae_value = camera_isp_auto_exposure(image);
+    if (ph_state.ae_value) {
+      camera_sensor_set_exposure(ph_state.ae_value);
+    }
   }
 #endif
 }

@@ -10,6 +10,7 @@
 #include "api.h"
 #include "xcore_compat.h"    // chanend_t safe use from XC
 #include "sensor_wrapper.h"  // sensor configuration
+#include "camera_conf_default.h" // build-time configuration (overridable)
 
 C_API_START
 
@@ -17,22 +18,6 @@ C_API_START
  * @defgroup camera_main Main camera functions
  * @{
  */
-
-// High-Level Sensor Configuration
-#define SENSOR_WIDTH    800 ///< Sensor width in pixels
-#define SENSOR_HEIGHT   800 ///< Sensor height in pixels
-
-#define CONFIG_FLIP         FLIP_NONE ///< Flip mode: FLIP_NONE, FLIP_VERTICAL
-#define CONFIG_BINNING      BINNING_ON  ///< Binning mode: BINNING_ON or BINNING_OFF
-#define CONFIG_CENTRALISE   CENTRALISE_ON ///< Centralise mode: CENTRALISE_ON or CENTRALISE_OFF
-
-#ifndef CONFIG_APPLY_AWB
-#define CONFIG_APPLY_AWB    (1) ///< Apply White Balance: 0 skip, 1 apply
-#endif
-
-#ifndef CONFIG_APPLY_AE
-#define CONFIG_APPLY_AE     (1) ///< Apply Auto Exposure: 0 to skip, 1 apply once, 2 continuous 
-#endif
 
 /**
  * @brief Main entry point for the lib_camera module.

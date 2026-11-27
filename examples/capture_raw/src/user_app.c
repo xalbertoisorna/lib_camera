@@ -7,6 +7,7 @@
 
 #include <xcore/channel.h>
 #include <xcore/select.h>
+#include <xscope.h>
 
 #include "camera.h"
 #include "camera_utils.h"
@@ -32,6 +33,8 @@ void save_image(image_cfg_t* image, char* filename) {
 }
 
 void user_app(chanend_t c_cam) {
+    // lossless xscope so image file writes to the host are not truncated
+    xscope_mode_lossless();
 
     // Create a Configuration
     camera_cfg_t config = {
