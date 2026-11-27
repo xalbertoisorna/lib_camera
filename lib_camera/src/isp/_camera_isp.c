@@ -114,8 +114,9 @@ void handle_post_process(image_cfg_t* image)
     return;
   }
 
+#if (CONFIG_APPLY_AWB || CONFIG_APPLY_AE)
   camera_mode_t mode = image->config->mode;
-  (void)mode;
+#endif
 
 #if (CONFIG_APPLY_AWB)
   // white balance kernel operates on RGB888 pixels only (not RAW or YUV)

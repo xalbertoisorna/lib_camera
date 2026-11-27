@@ -6,4 +6,6 @@
 
 #pragma once
 
-#define CONFIG_FLIP     FLIP_VERTICAL
+#define CONFIG_FLIP         FLIP_VERTICAL
+#define CONFIG_APPLY_AWB    (1)
+#define CONFIG_APPLY_AE     (1)

@@ -7,8 +7,8 @@ lib_camera change log
   * ADDED: Resource Usage section to documentation.
   * ADDED: optional ``camera_conf.h`` header to override build-time settings.
   * ADDED: ``test_flip_vertical`` hardware test.
-  * FIXED: RAW mode capture crashing in white balance and auto exposure.
-    AWB is now applied to RGB modes only and AE to RGB and YUV modes only.
+  * FIXED: RAW mode crash by skipping AWB and AE (AWB only applies to RGB, AE to RGB/YUV).
+  * FIXED: vertical flip crash in RGB and YUV modes (ISP line index now relative to ROI start).
 
 2.0.1
 -----
