@@ -26,6 +26,7 @@ IMX219::IMX219(
   this->get_x_y_len();
   this->get_offsets_and_check_ranges(_centralize);
   this->adjust_offsets();
+  this->compute_streaming_timing();
 }
 
 IMX219::IMX219(
@@ -39,6 +40,27 @@ IMX219::IMX219(
   this->get_x_y_len();
   this->check_ranges();
   this->adjust_offsets();
+  this->compute_streaming_timing();
+}
+
+void IMX219::compute_streaming_timing() {
+#if (CONFIG_STREAMING)
+  // frame period for the target fps, never shorter than readout + blanking
+  static_assert(CONFIG_STREAMING_LINE_LENGTH >= LINE_LENGTH_DEFAULT, "CONFIG_STREAMING_LINE_LENGTH below the minimum");
+  const uint32_t line_ns = LINE_TIME_NS_PER_VTPXCK_DIV * VTPXCK_DIV_STREAMING
+                           * CONFIG_STREAMING_LINE_LENGTH / LINE_LENGTH_DEFAULT;
+  uint32_t fl = 1000000000u / ((uint32_t)CONFIG_STREAMING_FPS * line_ns);
+  uint32_t fl_min = this->y_len + STREAMING_BLANK_LINES;
+  if (fl < fl_min) {
+    fl = fl_min;   // target fps not reachable: run as fast as possible
+  }
+  this->frame_length = (uint16_t)fl;
+  // exposure must fit in the frame, otherwise the sensor extends the frame
+  this->max_exp_lines = (uint16_t)(fl - EXPOSURE_FL_MARGIN);
+#else
+  this->frame_length = 0;       // keep sensor default
+  this->max_exp_lines = 0xFFFF; // no cap
+#endif
 }
 
 int IMX219::initialize() {
@@ -47,6 +69,10 @@ int IMX219::initialize() {
   ret |= this->i2c_write_table(GET_TABLE(imx219_common_regs));
   // Configure two or four Lane mode
   ret |= this->i2c_write_table(GET_TABLE(imx219_lanes_regs));
+#if (CONFIG_STREAMING)
+  // 2x pixel clock: halves readout time
+  ret |= this->i2c_write_line(REG_VTPXCK_DIV, VTPXCK_DIV_STREAMING);
+#endif
   // set gain
   ret |= this->set_exposure(GAIN_DEFAULT_DB);
   // set orientation
@@ -69,6 +95,13 @@ int IMX219::configure() {
   ret |= this->i2c_write_table(pix_format_regs);
   // set binning
   ret |= this->i2c_write_table(GET_TABLE(binning_reg));
+  // set frame length (streaming mode only)
+  if (this->frame_length) {
+    ret |= this->i2c_write_line(REG_LINE_LENGTH, (uint8_t)(CONFIG_STREAMING_LINE_LENGTH >> 8));
+    ret |= this->i2c_write_line(REG_LINE_LENGTH + 1, (uint8_t)(CONFIG_STREAMING_LINE_LENGTH));
+    ret |= this->i2c_write_line(REG_FRM_LENGTH, (uint8_t)(this->frame_length >> 8));
+    ret |= this->i2c_write_line(REG_FRM_LENGTH + 1, (uint8_t)(this->frame_length));
+  }
   return ret;
 }
 
@@ -93,32 +126,27 @@ int IMX219::set_orientation(orientation_t orientation) {
 i2c_table_t IMX219::get_exp_gains_table(uint32_t dBGain) {
   static i2c_line_t exposure_regs[5];
   static i2c_table_t exposure_table = {exposure_regs, 5};
-  uint16_t time, dgain;
-  uint8_t again;
   if (dBGain > GAIN_MAX_DB)
   {
     dBGain = GAIN_MAX_DB;
   }
-  if (dBGain < INTEGRATION_TIMES)
-  {
-    time = gain_integration_times[dBGain];
-    again = gain_analogue_gains[0];
-    dgain = gain_digital_gains[0];
+  // Each dB step is ~1 dB of total gain: integration time first, then analog
+  // gain, then digital gain. The integration time is limited to max_exp_lines
+  // (streaming mode), the remaining dB are moved to the gains.
+  unsigned time_cap = INTEGRATION_TIMES - 1;
+  while (time_cap > 0 && gain_integration_times[time_cap] > this->max_exp_lines) {
+    time_cap--;
   }
-  else
-  {
-    time = gain_integration_times[INTEGRATION_TIMES - 1];
-    if (dBGain < INTEGRATION_TIMES + ANALOGUE_GAINS)
-    {
-      again = gain_analogue_gains[dBGain - INTEGRATION_TIMES + 1];
-      dgain = gain_digital_gains[0];
-    }
-    else
-    {
-      again = gain_analogue_gains[ANALOGUE_GAINS];
-      dgain = gain_digital_gains[dBGain - INTEGRATION_TIMES - ANALOGUE_GAINS + 1];
-    }
-  }
+  unsigned time_idx = (dBGain < time_cap) ? dBGain : time_cap;
+  unsigned rem = dBGain - time_idx;
+  unsigned again_idx = (rem < ANALOGUE_GAINS) ? rem : ANALOGUE_GAINS;
+  rem -= again_idx;
+  unsigned dgain_idx = (rem < DIGITAL_GAINS - 1) ? rem : DIGITAL_GAINS - 1;
+
+  uint16_t time = gain_integration_times[time_idx];
+  uint8_t again = gain_analogue_gains[again_idx];
+  uint16_t dgain = gain_digital_gains[dgain_idx];
+
   exposure_regs[0] = {0x0157, again};
   exposure_regs[1] = {0x0158, (uint8_t)(dgain >> 8)};
   exposure_regs[2] = {0x0159, (uint8_t)(dgain)};

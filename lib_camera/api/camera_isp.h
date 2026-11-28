@@ -21,11 +21,13 @@ C_API_START
 // Maximum buffer sizes for each camera mode.
 // Note: Values are derived from the base SENSOR_WIDTH, accounting for 
 // resolution scaling and hardware alignment/parity constraints.
-#define MODE_RAW_MAX_SIZE           (800)
+// RAW, RGB4 and YUV2 hold full sensor rows, so they grow with SENSOR_WIDTH above 800.
+#define MODE_MAX_SIZE_800_OR_SENSOR ((SENSOR_WIDTH) > 800 ? (SENSOR_WIDTH) : 800)
+#define MODE_RAW_MAX_SIZE           MODE_MAX_SIZE_800_OR_SENSOR
 #define MODE_RGB1_MAX_SIZE          (200)
 #define MODE_RGB2_MAX_SIZE          (400)
-#define MODE_RGB4_MAX_SIZE          (800)
-#define MODE_YUV2_MAX_SIZE          (800)
+#define MODE_RGB4_MAX_SIZE          MODE_MAX_SIZE_800_OR_SENSOR
+#define MODE_YUV2_MAX_SIZE          MODE_MAX_SIZE_800_OR_SENSOR
 
 // ---------------------------- ISP CFG -------------------------------
 
@@ -59,7 +61,22 @@ typedef struct {
   unsigned size;      ///< Size of the output image in bytes
   int8_t* ptr;        ///< Pointer to the output image data
   camera_cfg_t* config; ///< Pointer to the camera configuration structure
+  /**
+   * Rows held by the output buffer (MODE_RAW and MODE_YUV2 only). 0: the buffer holds the whole image.
+   * Otherwise the buffer is a ring of `ring_rows` rows: row `r` is written at `r % ring_rows`, so a large image
+   * can be streamed through `camera_isp_line_callback` without storing it whole. The consumer must copy each row
+   * before the ISP wraps round to it. Auto exposure is not computed from ring images.
+   */
+  unsigned ring_rows;
 } image_cfg_t;
+
+/**
+ * @brief Pointer to output row `row` of an image, taking `ring_rows` into account.
+ */
+static inline int8_t* camera_isp_row_ptr(const image_cfg_t* image, unsigned row) {
+  unsigned r = image->ring_rows ? (row % image->ring_rows) : row;
+  return image->ptr + r * image->width * image->channels;
+}
 
 /// @} endgroup camera_isp_cfg
 
@@ -101,6 +118,47 @@ void camera_isp_start_capture(chanend_t c_cam, image_cfg_t *image);
  * @param c_cam camera channel
  */
 void camera_isp_get_capture(chanend_t c_cam);
+
+/**
+ * @brief Stops the camera sensor.
+ * The sensor is stopped at the end of the current frame (between frames) and the
+ * function returns once it is stopped, within one frame time. Use it to leave
+ * streaming mode (`CONFIG_STREAMING`), for example to save power or before the
+ * application exits. A later `camera_isp_start_capture` starts the sensor again.
+ * In start/stop mode the sensor is already stopped after each capture and the
+ * function returns immediately.
+ * Must not be called while a capture is in progress (between
+ * `camera_isp_start_capture` and `camera_isp_get_capture`).
+ *
+ * @param c_cam camera channel
+ */
+void camera_isp_stop(chanend_t c_cam);
+
+/**
+ * @brief Called from the ISP thread every time an output image row is complete.
+ *
+ * The default implementation does nothing. An application can provide its own
+ * definition (the library one is weak) to forward rows to another consumer as
+ * they are produced, for example a USB Video Class (UVC) thread, without
+ * waiting for the whole frame.
+ *
+ * - Rows are delivered in order, from 0 to `image->height - 1`, for each captured frame.
+ * - If a frame turns out to be incomplete (lines lost, e.g. while auto exposure
+ *   runs in streaming mode), the ISP drops it and captures the next frame
+ *   instead: rows then start again from 0. A row 0 arriving before the last row
+ *   means the rows received so far belong to a dropped frame.
+ * - The row is in the format of the capture mode (RAW8, RGB888 or YUV422) and,
+ *   for RGB modes, already white balanced (if `CONFIG_APPLY_AWB` is enabled).
+ * - The row data stays valid until the image buffer is reused by a new capture.
+ * - It runs inside the ISP thread, so it must return quickly: the time spent
+ *   here adds to the per-line processing budget (see the timing documentation).
+ *   Copy the data or pass the pointer on, and do the heavy work elsewhere.
+ *
+ * @param image    image being captured (the one passed to `camera_isp_start_capture`)
+ * @param row      output row index
+ * @param row_data pointer to the row, `image->width * image->channels` bytes
+ */
+void camera_isp_line_callback(const image_cfg_t* image, unsigned row, const int8_t* row_data);
 
 /**
  * @brief Main thread function for the ISP.
@@ -187,6 +245,16 @@ void camera_isp_raw8_to_yuv2(image_cfg_t* image, int8_t* data_in, unsigned ln);
  * @param image structure containing image configuration and output RGB pointer.
  */
 void camera_isp_white_balance(image_cfg_t* image);
+
+/**
+ * @brief Applies Static White Balancing to some rows of the image.
+ * Same as `camera_isp_white_balance`, restricted to `num_rows` rows starting at `row`.
+ * Image must be in RGB format.
+ * @param image structure containing image configuration and output RGB pointer.
+ * @param row first output row to process.
+ * @param num_rows number of rows to process.
+ */
+void camera_isp_white_balance_rows(image_cfg_t* image, unsigned row, unsigned num_rows);
 
 /**
  * @brief Computes camera gain to apply for a new auto exposure step given an image. 

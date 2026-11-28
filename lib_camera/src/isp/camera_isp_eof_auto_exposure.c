@@ -19,6 +19,12 @@
 #define HIST_BIN_COUNT      (64)
 #define HIST_QUANT_BITS     (2)
 
+// Maximum pixels sampled per channel for the histograms. Larger images are subsampled with a fixed pixel stride,
+// so the end-of-frame AE computation fits in the vertical blanking in streaming mode.
+#ifndef AE_MAX_SAMPLES
+#define AE_MAX_SAMPLES      (8192)
+#endif
+
 #define AE_MARGIN           (0.1)     // default marging for the auto exposure error
 #define AE_INIT_EXPOSURE    (35)      // initial exposure value
 #define AE_MIN_EXPOSURE     (1)       // minimum value for exposure
@@ -43,6 +49,7 @@ typedef enum {
 
 typedef struct {
     uint32_t bins[HIST_BIN_COUNT];
+    uint32_t samples;   // pixels counted in the histogram
 } channel_histogram_t;
 
 typedef struct {
@@ -229,15 +236,16 @@ void stats_compute_stats(
     histograms_t* histograms,
     image_cfg_t* image)
 {
-    float inv_img_size = (1.0f) / (image->width * image->height);
+    (void)image;
+    channel_histogram_t* h[3] = {
+        &histograms->histogram_red, &histograms->histogram_green, &histograms->histogram_blue};
+    channel_stats_t* st[3] = {&stats->stats_red, &stats->stats_green, &stats->stats_blue};
 
-    stats_simple(&histograms->histogram_red, &stats->stats_red, inv_img_size);
-    stats_simple(&histograms->histogram_green, &stats->stats_green, inv_img_size);
-    stats_simple(&histograms->histogram_blue, &stats->stats_blue, inv_img_size);
-
-    stats_skewness(&histograms->histogram_red, &stats->stats_red, inv_img_size);
-    stats_skewness(&histograms->histogram_green, &stats->stats_green, inv_img_size);
-    stats_skewness(&histograms->histogram_blue, &stats->stats_blue, inv_img_size);
+    for (int c = 0; c < 3; c++) {
+        float inv_samples = (h[c]->samples) ? (1.0f / h[c]->samples) : 0.0f;
+        stats_simple(h[c], st[c], inv_samples);
+        stats_skewness(h[c], st[c], inv_samples);
+    }
 }
 
 static
@@ -249,14 +257,24 @@ void stats_compute_hist_channel(
     const uint32_t img_size = image->size;
     const int8_t* pix = (int8_t*)image->ptr;
     const unsigned channels = image->channels;
+    // pixel stride: odd, so the samples do not line up with image columns
+    const uint32_t num_pix = img_size / channels;
+    uint32_t stride = (num_pix + AE_MAX_SAMPLES - 1) / AE_MAX_SAMPLES;
+    if (stride > 1) {
+        stride |= 1;
+    }
+    const uint32_t step = stride * channels;
+    uint32_t samples = 0;
     int16_t val = 0;
-    for (uint32_t k = chan_start; k < img_size; k+=channels) {
+    for (uint32_t k = chan_start; k < img_size; k += step) {
         val = pix[k];
         val += 128; // convert from int8_t to uint8_t
         val = (val < 0) ? 0 : (val > 255) ? 255 : val;
         val >>= HIST_QUANT_BITS;
         hist->bins[val]++;
+        samples++;
     }
+    hist->samples = samples;
 }
 
 static 
@@ -273,10 +291,11 @@ void stats_compute_histograms(
             chans[2] = CHANNEL_BLUE;
             break;
         case 2:
-            chans[0] = CHANNEL_Y;
-            chans[1] = CHANNEL_Y;
-            chans[2] = CHANNEL_Y;
-            break;
+            // YUV422: luma only, the same histogram for the three channels
+            stats_compute_hist_channel(&histograms->histogram_red, image, CHANNEL_Y);
+            histograms->histogram_green = histograms->histogram_red;
+            histograms->histogram_blue = histograms->histogram_red;
+            return;
         default:
             xassert(0); // unsupported channel format
             break;

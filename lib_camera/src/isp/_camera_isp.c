@@ -29,18 +29,22 @@
 
 // Sensor State
 static struct {
-  unsigned wait_for_frame_start;
   unsigned frame_number;
   unsigned in_line_number;
-  unsigned out_line_number;
-  unsigned capture_finished;
+  unsigned capture_pending;   // capture requested, waiting for the next frame start
+  unsigned capturing;         // current frame is being captured
+  unsigned sensor_streaming;  // sensor is out of standby
+  unsigned frame_corrupt;     // invalid packet received during the current frame
+  unsigned stop_pending;      // stop requested, sensor stops at the next end of frame
   unsigned ae_value;
 } ph_state = {
-    1,  // wait_for_frame_start
     0,  // frame_number
     0,  // in_line_number
-    0,  // out_line_number
-    0,  // capture_finished
+    0,  // capture_pending
+    0,  // capturing
+    0,  // sensor_streaming
+    0,  // frame_corrupt
+    0,  // stop_pending
     1,  // ae_value
 };
 
@@ -89,20 +93,24 @@ void camera_isp_get_capture(chanend_t c_cam) {
   chan_in_byte(c_cam);
 }
 
+void camera_isp_stop(chanend_t c_cam) {
+  image_cfg_t stop_request = {0};   // NULL image pointer means stop
+  chan_out_buf_byte(c_cam, (uint8_t*)&stop_request, sizeof(image_cfg_t));
+  chan_in_byte(c_cam);
+}
+
 
 // -------- State handlers --------
 
 static
 void handle_unknown_packet(
   mipi_data_type_t data_type) {
-  xassert(data_type < 0x3F && "Packet non valid");
-}
-
-static
-void handle_no_expected_lines() {
-  if (ph_state.in_line_number >= SENSOR_HEIGHT) {
-    // We've received more lines of image data than we expected.
-    xassert(0 && "Recieved too many lines");
+  // Other CSI-2 packet types (e.g. embedded data) are ignored. An invalid
+  // header means the receiver lost sync (e.g. the ISP thread was busy while the
+  // sensor kept streaming): drop the current frame, the receiver resyncs on the
+  // next packet.
+  if (data_type == 0x3F) {
+    ph_state.frame_corrupt = 1;
   }
 }
 
@@ -114,20 +122,11 @@ void handle_post_process(image_cfg_t* image)
     return;
   }
 
-#if (CONFIG_APPLY_AWB || CONFIG_APPLY_AE)
-  camera_mode_t mode = image->config->mode;
-#endif
-
-#if (CONFIG_APPLY_AWB)
-  // white balance kernel operates on RGB888 pixels only (not RAW or YUV)
-  if (mode == MODE_RGB1 || mode == MODE_RGB2 || mode == MODE_RGB4) {
-    camera_isp_white_balance(image);
-  }
-#endif
+  // Note: white balance is applied per row, as rows are completed (see handle_rows_ready)
 
 #if (CONFIG_APPLY_AE)
-  // auto exposure statistics support RGB and YUV images only (not RAW)
-  if (mode != MODE_RAW) {
+  // auto exposure statistics support RGB and YUV images only (not RAW), and need the whole image
+  if (image->config->mode != MODE_RAW && image->ring_rows == 0) {
     ph_state.ae_value = camera_isp_auto_exposure(image);
     if (ph_state.ae_value) {
       camera_sensor_set_exposure(ph_state.ae_value);
@@ -141,10 +140,64 @@ void handle_end_of_frame(
   image_cfg_t* image,
   chanend_t c_cam)
 {
+  if (!ph_state.capturing) {
+    return; // frame not requested by the user
+  }
+  ph_state.capturing = 0;
+
+  // Only deliver complete frames. Lines can be lost if the ISP thread was busy
+  // when they arrived (e.g. auto exposure computation overlapping the next
+  // frame in streaming mode). In that case retry on the next frame.
+  if (ph_state.in_line_number != SENSOR_HEIGHT || ph_state.frame_corrupt) {
+    debug_printf("Incomplete frame (%d lines), retrying\n", ph_state.in_line_number);
+    ph_state.capture_pending = 1;
+    return;
+  }
+
+  handle_post_process(image);
+
+#if (!CONFIG_STREAMING)
   camera_sensor_stop();
-  if (image->ptr != NULL) {
-    ph_state.capture_finished = 1;
-    chan_out_byte(c_cam, 1);
+  ph_state.sensor_streaming = 0;
+#endif
+
+  chan_out_byte(c_cam, 1);
+}
+
+// Default line callback: does nothing. Applications can override it.
+__attribute__((weak))
+void camera_isp_line_callback(const image_cfg_t* image, unsigned row, const int8_t* row_data)
+{
+  (void)image;
+  (void)row;
+  (void)row_data;
+}
+
+// Called after a sensor line has been converted. Converters complete output
+// rows at fixed points (every 1, 2 or 4 sensor lines depending on the mode).
+static
+void handle_rows_ready(image_cfg_t* image, unsigned roi_ln)
+{
+  unsigned first_row, num_rows;
+  switch (image->config->mode) {
+    case MODE_RAW:  first_row = roi_ln;               num_rows = 1; break;
+    case MODE_RGB1: if ((roi_ln & 1) != 1) return; first_row = roi_ln - 1;        num_rows = 2; break;
+    case MODE_RGB2: if ((roi_ln & 3) != 3) return; first_row = (roi_ln - 3) >> 1; num_rows = 2; break;
+    case MODE_RGB4: if ((roi_ln & 3) != 3) return; first_row = (roi_ln - 3) >> 2; num_rows = 1; break;
+    case MODE_YUV2: if ((roi_ln & 1) != 1) return; first_row = (roi_ln - 1) >> 1; num_rows = 1; break;
+    default: return;
+  }
+
+#if (CONFIG_APPLY_AWB)
+  // white balance kernel operates on RGB888 pixels only (not RAW or YUV)
+  camera_mode_t mode = image->config->mode;
+  if (mode == MODE_RGB1 || mode == MODE_RGB2 || mode == MODE_RGB4) {
+    camera_isp_white_balance_rows(image, first_row, num_rows);
+  }
+#endif
+
+  for (unsigned r = first_row; r < first_row + num_rows; r++) {
+    camera_isp_line_callback(image, r, camera_isp_row_ptr(image, r));
   }
 }
 
@@ -153,11 +206,8 @@ void handle_expected_lines(image_cfg_t* image, int8_t* data_in) {
   unsigned ln = ph_state.in_line_number;
   camera_mode_t mode = image->config->mode;
   
-  // Check if the image region is valid
-  uint8_t c1 = image->ptr == NULL;
-  uint8_t c2 = ln < image->config->y1;
-  uint8_t c3 = ln >= image->config->y2;
-  if (c1 || c2 || c3) {
+  // Check if the line is inside the region of interest
+  if (ln < image->config->y1 || ln >= image->config->y2) {
     return;
   }
   
@@ -189,6 +239,8 @@ void handle_expected_lines(image_cfg_t* image, int8_t* data_in) {
       break;
     }
   }
+
+  handle_rows_ready(image, ln - image->config->y1);
 }
 
 
@@ -246,6 +298,7 @@ void camera_isp_coordinates_compute(image_cfg_t* img_cfg){
   xassert(cfg->y2 <= SENSOR_HEIGHT && "y2");
   xassert((img_cfg->width % 4) == 0 && "width has to be divisible by 4");
   xassert((img_cfg->height % 4) == 0 && "height has to be divisible by 4");
+  xassert((img_cfg->ring_rows == 0 || mode == MODE_RAW || mode == MODE_YUV2) && "ring_rows: RAW and YUV2 only");
 }
 
 
@@ -261,10 +314,6 @@ void camera_isp_packet_handler(
   const mipi_header_t header = pkt->header;
   const mipi_data_type_t data_type = MIPI_GET_DATA_TYPE(header);
 
-  // Wait for a clean frame
-  if (ph_state.wait_for_frame_start
-    && data_type != MIPI_DT_FRAME_START) return;
-
   // Timing
   static uint32_t t_init=0;
   static uint32_t t_end=0;
@@ -277,23 +326,34 @@ void camera_isp_packet_handler(
   switch (data_type) {
     case MIPI_DT_FRAME_START:
       t_init = get_reference_time();
-      ph_state.wait_for_frame_start = 0;
       ph_state.in_line_number = 0;
-      ph_state.capture_finished = 0;
+      ph_state.frame_corrupt = 0;
       ph_state.frame_number++;
+      // a capture always starts at the beginning of a frame
+      if (ph_state.capture_pending) {
+        ph_state.capture_pending = 0;
+        ph_state.capturing = 1;
+      }
       break;
 
     case MIPI_DT_RAW8:
-      handle_no_expected_lines();
-      handle_expected_lines(image_cfg, data_in);
+      if (ph_state.capturing && ph_state.in_line_number < SENSOR_HEIGHT) {
+        handle_expected_lines(image_cfg, data_in);
+      }
       ph_state.in_line_number++;
       break;
 
     case MIPI_DT_FRAME_END:
       t_end = get_reference_time();
       debug_printf("Frame time: %d cycles\n", t_end - t_init);
-      handle_post_process(image_cfg);
       handle_end_of_frame(image_cfg, c_isp_to_user);
+      // stop between frames, so the next start begins with a clean frame
+      if (ph_state.stop_pending) {
+        camera_sensor_stop();
+        ph_state.sensor_streaming = 0;
+        ph_state.stop_pending = 0;
+        chan_out_byte(c_isp_to_user, 1);
+      }
       break;
 
     default:
@@ -319,8 +379,9 @@ void camera_isp_thread(
   image_cfg_t image;
   image.ptr = NULL;
 
-  // Sensor configuration
+  // Sensor configuration (the sensor is left streaming after init)
   camera_sensor_init();
+  ph_state.sensor_streaming = 1;
 
   // Wait for the sensor to start
   delay_milliseconds_cpp(600);
@@ -342,8 +403,21 @@ void camera_isp_thread(
   on_c_user_isp_change: { // attending user_app
     // user petition
     chan_in_buf_byte(c_cam, (uint8_t*)&image, sizeof(image_cfg_t)); // recieve info from user
-    // Start camera
-    camera_sensor_start();
+    if (image.ptr == NULL) {                // stop request (camera_isp_stop)
+      ph_state.capture_pending = 0;
+      if (ph_state.sensor_streaming) {
+        ph_state.stop_pending = 1;          // acknowledged at the next end of frame
+      } else {
+        chan_out_byte(c_cam, 1);            // already stopped
+      }
+      continue;
+    }
+    ph_state.capture_pending = 1;
+    // Start camera (in streaming mode the sensor is never stopped)
+    if (!ph_state.sensor_streaming) {
+      camera_sensor_start();
+      ph_state.sensor_streaming = 1;
+    }
     continue;
     }
   }

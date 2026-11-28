@@ -61,4 +61,20 @@
 #define CONFIG_APPLY_AE     (1) ///< Apply Auto Exposure: 0 to skip, 1 apply once, 2 continuous
 #endif
 
+#ifndef CONFIG_STREAMING
+#define CONFIG_STREAMING    (0) ///< Sensor mode: 0 start/stop the sensor per capture, 1 continuous streaming
+#endif
+
+#ifndef CONFIG_STREAMING_FPS
+#define CONFIG_STREAMING_FPS (30) ///< Target frame rate in streaming mode (caps the exposure time)
+#endif
+
+#ifndef CONFIG_STREAMING_PCK_DIV
+#define CONFIG_STREAMING_PCK_DIV (5) ///< Sensor pixel clock divider in streaming mode (VTPXCK_DIV: 4, 5, 8 or 10). 5 reads a line in 29.9 us, 10 in 59.9 us. 10 stops the image output for windows wider than 800: use CONFIG_STREAMING_LINE_LENGTH for slower lines
+#endif
+
+#ifndef CONFIG_STREAMING_LINE_LENGTH
+#define CONFIG_STREAMING_LINE_LENGTH (3448) ///< Sensor line length in pixel clocks in streaming mode (line_length_pck, >= 3448). The line time scales with it: 6896 doubles it
+#endif
+
 /// @} addtogroup camera_main

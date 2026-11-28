@@ -30,6 +30,19 @@ class IMX219 : public SensorBase {
     uint16_t x_offset, y_offset;
 
     /**
+     * @brief Frame length (lines) and maximum exposure (lines).
+     * In streaming mode they are derived from CONFIG_STREAMING_FPS,
+     * otherwise the sensor defaults are kept (no exposure cap).
+     */
+    uint16_t frame_length;
+    uint16_t max_exp_lines;
+
+    /**
+     * @brief Computes frame length and exposure cap for streaming mode
+     */
+    void compute_streaming_timing();
+
+    /**
      * @brief Get X and Y lenghts
      */
     void get_x_y_len();

@@ -70,3 +70,14 @@ void camera_isp_white_balance(image_cfg_t* image)
     xassert(image->size > 12 && "image size should be > 12 bytes");
     wb_scale_image(image, vk_rgb, vc_rgb, vsat);
 }
+
+void camera_isp_white_balance_rows(image_cfg_t* image, unsigned row, unsigned num_rows)
+{
+    xassert(image->ptr != NULL && "image pointer is NULL");
+    xassert(row + num_rows <= image->height && "rows out of range");
+    image_cfg_t rows = *image;
+    rows.height = num_rows;
+    rows.size = num_rows * image->width * image->channels;
+    rows.ptr = image->ptr + (row * image->width * image->channels);
+    wb_scale_image(&rows, vk_rgb, vc_rgb, vsat);
+}

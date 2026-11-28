@@ -35,6 +35,8 @@ The library build-time settings are defined in ``camera_conf_default.h``. Each s
 - ``CONFIG_CENTRALISE``: centres the sensor region within the sensor active area (``CENTRALISE_ON``) or places it at the origin (``CENTRALISE_OFF``).
 - ``CONFIG_APPLY_AWB``: ``0`` disables automatic white balance, ``1`` enables it. Only applied to RGB modes.
 - ``CONFIG_APPLY_AE``: ``0`` disables automatic exposure, ``1`` applies it once, ``2`` applies it continuously. Only applied to RGB and YUV modes.
+- ``CONFIG_STREAMING``: ``0`` starts the sensor for each capture and stops it at the end of the frame (default). ``1`` keeps the sensor streaming, see :ref:`lib_camera_streaming`.
+- ``CONFIG_STREAMING_FPS``: target frame rate in streaming mode. It sets the sensor frame period and limits the exposure time to fit in it.
 
 Overriding Default Settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -58,6 +60,52 @@ There are two ways of overriding the default settings from the application:
    Do not define the same setting with both methods, as this results in a macro redefinition error. Because ``camera_conf.h`` is also included from XC files (``mapfile.xc``), it must only contain preprocessor definitions.
 
 The ``test_flip_vertical`` hardware test (``tests/hw_tests/test_flip_vertical``) shows an application overriding ``CONFIG_FLIP`` through ``camera_conf.h``.
+
+.. _lib_camera_streaming:
+
+Streaming Mode
+--------------
+
+By default (``CONFIG_STREAMING = 0``) the sensor is started when a capture is requested and stopped at the end of the frame. The sensor only collects light while streaming, so every capture waits for the sensor wake-up and the full exposure before the frame is read out, roughly 110 ms with the default exposure.
+
+With ``CONFIG_STREAMING = 1`` the sensor is never stopped between captures. Because the IMX219 has a rolling shutter, the next frame is exposed while the current one is read out, so the exposure no longer adds to the capture time. In this mode the library also:
+
+- doubles the sensor pixel clock (``VTPXCK_DIV`` = 5), halving the readout time (800 lines in 24 ms),
+- sets the frame period from ``CONFIG_STREAMING_FPS``, never shorter than readout plus a minimum vertical blanking,
+- limits the exposure so it fits in the frame period; any extra gain requested by the auto exposure is applied as analog (then digital) gain.
+
+A capture request (:c:func:`camera_isp_start_capture`) is served by the next complete frame. Requesting the next frame right after :c:func:`camera_isp_get_capture` returns gives one frame per sensor frame: 30 fps was measured in ``RGB1``, ``RGB2``, ``RGB4`` and ``YUV2`` modes with the default ``CONFIG_STREAMING_FPS = 30``. The exposure limit at 30 fps (about 33 ms) is above the largest exposure of the default exposure table, so the auto exposure behaves as in start/stop mode.
+
+.. code-block:: c
+
+    // camera_conf.h (application)
+    #pragma once
+
+    #define CONFIG_STREAMING      (1)
+    #define CONFIG_STREAMING_FPS  (30)
+
+Things to take into account:
+
+- The sensor keeps streaming until :c:func:`camera_isp_stop` is called, which stops it between frames. Stop the sensor before other long operations that load the system (for example writing files to the host over xSCOPE) and before the application exits. The next capture request starts the sensor again.
+- The ISP thread only delivers complete frames. While the auto exposure is adjusting, its computation at the end of a frame can take longer than the vertical blanking; the next frame is then incomplete, it is dropped and the capture is served by the following frame. This only happens while the exposure is being adjusted (or periodically with ``CONFIG_APPLY_AE = 2``).
+- Use two image buffers alternately if the application processes a frame while the next one is being captured.
+
+Line Callback
+^^^^^^^^^^^^^
+
+Rows of the output image can be forwarded as soon as they are produced, without waiting for the end of the frame, for example to a USB Video Class (UVC) interface. The library calls :c:func:`camera_isp_line_callback` from the ISP thread every time an output row is complete. The default implementation is empty (weak symbol); the application overrides it by defining a function with the same signature:
+
+.. code-block:: c
+
+    void camera_isp_line_callback(const image_cfg_t* image, unsigned row, const int8_t* row_data) {
+        // row_data: image->width * image->channels bytes, in the capture mode format
+        // (YUV422 in MODE_YUV2), already white balanced for RGB modes.
+        // Keep it short: copy or forward the data and return.
+    }
+
+Rows arrive in order from ``0`` to ``image->height - 1``. If a frame is dropped (see above), rows start again from ``0``. The callback runs inside the ISP thread, so the time spent in it adds to the ISP processing per sensor line (one sensor line every 29.9 us in streaming mode); it must return quickly.
+
+The ``test_streaming`` hardware test (``tests/hw_tests/test_streaming``) shows streaming mode with a line callback.
 
 Image Configuration
 -------------------
