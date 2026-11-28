@@ -17,8 +17,7 @@
 #include "camera_io.h"
 
 #define DELAY_MILISECONDS 100
-#define FILE1_NAME "capture1.rgb"
-#define FILE2_NAME "capture2.rgb"
+#define FILE_NAME "capture.rgb"
 
 
 extern void camera_isp_get_capture_xscope(chanend_t c_cam);
@@ -74,6 +73,7 @@ void user_app(chanend_t c_cam) {
         printf("Capture %d time:\t%f [ms]\n", i, (t_end[i] - t_start[i]) * 1e-5);
     }
     
-    save_image(&image, FILE2_NAME);
+    save_image(&image, FILE_NAME);
+    delay_milliseconds_cpp(300);
     exit(0);
 }

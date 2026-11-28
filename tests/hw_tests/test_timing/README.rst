@@ -21,3 +21,5 @@ To run this test, from top level directory of the repo, run the following comman
     xrun --xscope --xscope-file xscope.vcd bin/test_timing.xe
     # xscope
     gtkwave xscope.vcd
+    # Decode
+    python decode.py #warning! image is not accurate for some reason xscoe calls get into the file while writing it.
