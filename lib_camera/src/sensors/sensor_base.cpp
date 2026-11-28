@@ -1,9 +1,9 @@
 // Copyright 2023-2025 XMOS LIMITED.
 // This Software is subject to the terms of the XMOS Public Licence: Version 1.
 
-
 #include "sensor_base.hpp"
 #include "camera_utils.h"
+#include "board_support.h"
 
 // debug options
 // (can be enabled via: -DDEBUG_PRINT_ENABLE_CAM_I2C=1)
@@ -19,8 +19,8 @@ SensorBase::SensorBase(i2c_config_t _conf) : i2c_cfg(_conf) {
 void SensorBase::i2c_init() {
   i2c_master_init(
     this->i2c_cfg.i2c_ctx_ptr,
-    this->i2c_cfg.p_scl, 1, 0xC,
-    this->i2c_cfg.p_sda, 0, 0xC,
+    this->i2c_cfg.p_scl, SCL_BIT_POS, SCL_BIT_MASK,
+    this->i2c_cfg.p_sda, SDA_BIT_POS, SDA_BIT_MASK,
     this->i2c_cfg.speed);
   delay_milliseconds_cpp(100);
   debug_printf("I2C initialized.\n");
